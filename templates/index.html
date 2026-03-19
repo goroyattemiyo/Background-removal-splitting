@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE Sticker Splitter</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>LINE Sticker Splitter</h1>
+    <p class="subtitle">スタンプ一覧画像 → 背景除去 → LINE仕様PNG → ZIP</p>
+  </header>
+
+  <section id="step-upload" class="card">
+    <h2>① 画像をアップロード</h2>
+    <div id="drop-zone" class="drop-zone">
+      <p>ここに画像をドラッグ＆ドロップ<br>または<br>
+        <label class="file-label">ファイルを選択
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </label>
+      </p>
+    </div>
+    <div id="upload-preview-wrap" class="hidden">
+      <div class="canvas-wrap">
+        <canvas id="upload-canvas"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section id="step-color" class="card hidden">
+    <h2>② 消したい背景色をクリック</h2>
+    <div class="info-box">
+      上の画像の<b>背景部分</b>をクリックしてください。何度でも選び直せます。
+    </div>
+    <div class="color-preview-row">
+      <div id="color-swatch" class="color-swatch"></div>
+      <span id="color-label" class="color-label">未選択</span>
+    </div>
+  </section>
+
+  <section id="step-settings" class="card hidden">
+    <h2>③ 設定</h2>
+    <div class="settings-grid">
+      <div class="field">
+        <label for="rows">行数</label>
+        <input type="number" id="rows" value="8" min="1" max="20">
+      </div>
+      <div class="field">
+        <label for="cols">列数</label>
+        <input type="number" id="cols" value="6" min="1" max="20">
+      </div>
+    </div>
+    <details class="advanced-toggle">
+      <summary>詳細設定</summary>
+      <div class="settings-grid" style="margin-top:12px">
+        <div class="field">
+          <label for="tolerance">除去の強さ: <span id="tol-val">10</span></label>
+          <input type="range" id="tolerance" min="1" max="80" value="10">
+        </div>
+        <div class="field">
+          <label for="edge-softness">境界のなめらかさ: <span id="soft-val">2</span></label>
+          <input type="range" id="edge-softness" min="0" max="8" value="2">
+        </div>
+        <div class="field full-width">
+          <label>
+            <input type="checkbox" id="line-format" checked>
+            LINEスタンプ仕様 (370x320) にリサイズ
+        </label>
+      </div>
+      <div class="field full-width">
+        <label>
+          <input type="checkbox" id="ai-upscale" checked>
+          AI超解像（線をくっきりシャープに）
+          </label>
+        </div>
+      </div>
+    </details>
+    <button id="btn-process" class="btn-primary" style="margin-top:16px">処理を開始</button>
+    <div id="progress-bar-wrap" class="hidden">
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <p id="progress-text">処理中...</p>
+    </div>
+  </section>
+
+  <section id="step-results" class="card hidden">
+    <h2>④ 処理結果</h2>
+    <div class="results-actions">
+      <button id="btn-download-zip" class="btn-primary">ZIPでまとめてダウンロード</button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+    <div class="results-hint">
+      色やパラメータを変えて何度でも再処理できます
+    </div>
+    <div id="results-grid" class="results-grid"></div>
+  </section>
+
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
