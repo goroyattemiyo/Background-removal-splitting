@@ -134,7 +134,7 @@
       rows:parseInt(rowsInput.value),
       cols:parseInt(colsInput.value),
       tolerance:parseInt(toleranceInput.value),
-      remove_bg:document.getElementById("remove_bg_cb").checked,edge_softness:parseInt(edgeSoftInput.value),
+      remove_bg:false,edge_softness:parseInt(edgeSoftInput.value),
       line_format:lineFormatCb.checked,
       use_ai_upscale:aiUpscaleCb.checked,
       bg_r:pickedR,bg_g:pickedG,bg_b:pickedB
@@ -184,3 +184,24 @@
     window.location.href="/download/"+sessionId;
   });
 })();
+
+    // --- 背景除去ボタン追加 ---
+    var existingRmBtn = document.getElementById("removeBgBtn");
+    if(existingRmBtn) existingRmBtn.remove();
+    var rmBtn = document.createElement("button");
+    rmBtn.id = "removeBgBtn";
+    rmBtn.textContent = "背景除去を実行";
+    rmBtn.style.cssText = "margin:16px 8px;padding:12px 32px;background:linear-gradient(135deg,#e44d26,#f16529);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;";
+    rmBtn.addEventListener("click", function(){
+      rmBtn.disabled=true;rmBtn.textContent="背景除去中...";
+      fetch("/process",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({session_id:window._sessionId,rows:parseInt(document.getElementById("rows").value),cols:parseInt(document.getElementById("cols").value),bg_r:window._pickedColor[0],bg_g:window._pickedColor[1],bg_b:window._pickedColor[2],remove_bg:true,tolerance:parseInt(document.getElementById("tolerance").value||"10"),edge_softness:parseInt(document.getElementById("edge-softness").value||"2"),line_format:document.getElementById("line-format").checked})
+      }).then(r=>r.json()).then(function(d){
+        rmBtn.textContent="背景除去を実行";rmBtn.disabled=false;
+        var grid=document.getElementById("results-grid");grid.innerHTML="";
+        var t=Date.now();
+        d.results.forEach(function(f){var img=document.createElement("img");img.src="/preview/"+window._sessionId+"/"+f+"?t="+t;img.style.cssText="max-width:120px;max-height:120px;margin:4px;border-radius:4px;background:repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50%/16px 16px;";grid.appendChild(img);});
+      });
+    });
+    var resultsSection = document.getElementById("results") || document.querySelector(".results");
+    if(resultsSection){var dlBtn=resultsSection.querySelector("a[download],button");if(dlBtn)dlBtn.parentNode.insertBefore(rmBtn,dlBtn);else resultsSection.appendChild(rmBtn);}
