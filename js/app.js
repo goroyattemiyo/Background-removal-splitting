@@ -240,7 +240,7 @@ function removeColorBg(cell, color, tolerance) {
   }
   // Pass 3: aggressive defringe - remove background color spill from all edge pixels
   for (let i = 0; i < d.length; i += 4) {
-    if (d[i+3] === 0) continue;
+    if (d[i+3] === 0 || d[i+3] >= 250) continue;
     const dr = d[i] - color.r;
     const dg = d[i+1] - color.g;
     const db = d[i+2] - color.b;
@@ -250,9 +250,7 @@ function removeColorBg(cell, color, tolerance) {
       d[i]   = Math.max(0, Math.min(255, Math.round(d[i]   + dr * strength * 1.0)));
       d[i+1] = Math.max(0, Math.min(255, Math.round(d[i+1] + dg * strength * 1.0)));
       d[i+2] = Math.max(0, Math.min(255, Math.round(d[i+2] + db * strength * 1.0)));
-      if (d[i+3] < 255) {
-        d[i+3] = Math.max(0, Math.round(d[i+3] * (1 - strength * 0.5)));
-      }
+      d[i+3] = Math.max(0, Math.round(d[i+3] * (1 - strength * 0.5)));
     }
   }
   // Pass 4: edge erode - remove fringe bordering transparent pixels
