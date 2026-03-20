@@ -303,16 +303,18 @@ btnPackage.addEventListener('click', async () => {
   pkgBar.value = 100;
 });
 
-function resizeToBlob(srcCanvas, maxW, maxH) {
+function resizeToBlob(srcCanvas, targetW, targetH) {
   const cv = document.createElement('canvas');
-  const ratio = Math.min(maxW / srcCanvas.width, maxH / srcCanvas.height, 1);
-  let w = Math.round(srcCanvas.width * ratio);
-  let h = Math.round(srcCanvas.height * ratio);
-  w = w % 2 === 0 ? w : w + 1;  // ensure even
-  h = h % 2 === 0 ? h : h + 1;
-  cv.width = w;
-  cv.height = h;
-  cv.getContext('2d').drawImage(srcCanvas, 0, 0, w, h);
+  cv.width = targetW;
+  cv.height = targetH;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, targetW, targetH);
+  const ratio = Math.min(targetW / srcCanvas.width, targetH / srcCanvas.height);
+  const drawW = Math.round(srcCanvas.width * ratio);
+  const drawH = Math.round(srcCanvas.height * ratio);
+  const offsetX = Math.round((targetW - drawW) / 2);
+  const offsetY = Math.round((targetH - drawH) / 2);
+  ctx.drawImage(srcCanvas, 0, 0, srcCanvas.width, srcCanvas.height, offsetX, offsetY, drawW, drawH);
   return new Promise(r => cv.toBlob(r, 'image/png'));
 }
 

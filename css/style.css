@@ -28,3 +28,5 @@ canvas { max-width: 100%; border-radius: 8px; margin-top: 12px; }
 #download-preview img { width: 100%; border-radius: 6px; background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50%/12px 12px; }
 progress { width: 200px; }
 footer { text-align: center; color: #6e6e73; font-size: .85rem; padding: 24px 0; }
+
+.hint { color: #6e6e73; font-size: .85rem; margin-bottom: 8px; }
