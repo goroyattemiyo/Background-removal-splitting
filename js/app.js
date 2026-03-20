@@ -215,12 +215,28 @@ function removeColorBg(cell, color, tolerance) {
     const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
     if (dist < unifyRange) { d[i] = color.r; d[i+1] = color.g; d[i+2] = color.b; }
   }
-  // Pass 2: remove unified bg
-  const outer = tolerance + 25;
+  // Pass 2: remove unified bg (wider fade band)
+  const outer = tolerance + 60;
   for (let i = 0; i < d.length; i += 4) {
     const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
     if (dist <= tolerance) { d[i+3] = 0; }
     else if (dist < outer) { d[i+3] = Math.round(((dist - tolerance) / (outer - tolerance)) * 255); }
+  }
+  // Pass 3: defringe - remove color spill from semi-transparent pixels
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i+3];
+    if (a > 0 && a < 250) {
+      const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
+      if (dist < outer) {
+        const mix = 1 - (dist / outer);
+        d[i]   = Math.round(d[i]   + (d[i]   - color.r) * mix);
+        d[i+1] = Math.round(d[i+1] + (d[i+1] - color.g) * mix);
+        d[i+2] = Math.round(d[i+2] + (d[i+2] - color.b) * mix);
+        d[i]   = Math.max(0, Math.min(255, d[i]));
+        d[i+1] = Math.max(0, Math.min(255, d[i+1]));
+        d[i+2] = Math.max(0, Math.min(255, d[i+2]));
+      }
+    }
   }
   ctx.putImageData(imgData, 0, 0);
 }
