@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LINE Stamp Maker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0/dist/ort.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>LINE Stamp Maker</h1>
+    <p>画像を分割 → 背景除去 → LINEスタンプ用ZIPを生成。すべてブラウザ内で完結。</p>
+  </header>
+
+  <main>
+    <!-- Step 1: Upload -->
+    <section id="step-upload" class="step">
+      <h2>① 画像をアップロード</h2>
+      <div id="drop-zone">
+        <p>ここにドラッグ＆ドロップ<br>またはクリックして選択</p>
+        <input type="file" id="file-input" accept="image/*" hidden>
+      </div>
+      <canvas id="preview-canvas" hidden></canvas>
+    </section>
+
+    <!-- Step 2: Grid Split -->
+    <section id="step-split" class="step hidden">
+      <h2>② グリッド設定＆分割</h2>
+      <div class="controls">
+        <label>行: <input type="number" id="rows" value="5" min="1" max="20"></label>
+        <label>列: <input type="number" id="cols" value="8" min="1" max="20"></label>
+        <button id="btn-split">分割する</button>
+      </div>
+      <canvas id="grid-canvas"></canvas>
+    </section>
+
+    <!-- Step 3: Select Stickers -->
+    <section id="step-select" class="step hidden">
+      <h2>③ スタンプを選択</h2>
+      <p>使用するセルをクリックで選択（<span id="selected-count">0</span>個選択中）
+        <span id="count-warning" class="warning hidden">※ 8/16/24/32/40個にしてください</span>
+      </p>
+      <div class="select-controls">
+        <label>メイン画像: <select id="main-select"></select></label>
+        <label>タブ画像: <select id="tab-select"></select></label>
+      </div>
+      <div id="cell-grid"></div>
+    </section>
+
+    <!-- Step 4: Background Removal (optional) -->
+    <section id="step-bg" class="step hidden">
+      <h2>④ 背景除去（任意）</h2>
+      <div class="controls">
+        <label><input type="radio" name="bg-mode" value="none" checked> なし</label>
+        <label><input type="radio" name="bg-mode" value="color"> 色ベース（スポイト）</label>
+        <label><input type="radio" name="bg-mode" value="ai"> AI（isnet-anime）</label>
+      </div>
+      <div id="color-picker-area" class="hidden">
+        <p>プレビュー画像をクリックして背景色を選択</p>
+        <canvas id="picker-canvas"></canvas>
+        <div id="picked-color-box">
+          <span id="color-swatch"></span>
+          <span id="color-label">未選択</span>
+        </div>
+        <label>許容値: <input type="range" id="tolerance" min="1" max="100" value="30"> <span id="tol-val">30</span></label>
+      </div>
+      <div id="ai-area" class="hidden">
+        <p>初回はモデル（約178MB）をダウンロードします。2回目以降はキャッシュ済み。</p>
+      </div>
+      <button id="btn-remove-bg" class="hidden">背景除去を実行</button>
+      <div id="bg-progress" class="hidden"><progress id="bg-bar" max="100" value="0"></progress> <span id="bg-status"></span></div>
+    </section>
+
+    <!-- Step 5: Package & Download -->
+    <section id="step-download" class="step hidden">
+      <h2>⑤ LINEパッケージ生成</h2>
+      <div id="download-preview"></div>
+      <button id="btn-package">ZIPを生成してダウンロード</button>
+      <div id="pkg-progress" class="hidden"><progress id="pkg-bar" max="100" value="0"></progress></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>すべての処理はブラウザ内で完結します。画像はサーバーに送信されません。</p>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
