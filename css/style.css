@@ -30,3 +30,7 @@ progress { width: 200px; }
 footer { text-align: center; color: #6e6e73; font-size: .85rem; padding: 24px 0; }
 
 .hint { color: #6e6e73; font-size: .85rem; margin-bottom: 8px; }
+
+.upscale-option { margin-top: 12px; padding: 12px; background: #f0f7ff; border-radius: 8px; }
+.upscale-option a { color: #0071e3; text-decoration: none; }
+.upscale-option a:hover { text-decoration: underline; }

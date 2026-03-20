@@ -32,6 +32,10 @@
         <label>列: <input type="number" id="cols" value="8" min="1" max="20"></label>
         <button id="btn-split">分割する</button>
       </div>
+      <div class="upscale-option">
+        <label><input type="checkbox" id="upscale-check"> 分割前に2倍アップスケール（小さい画像の場合に推奨）</label>
+        <p class="hint">より高品質な4倍アップスケールは <a href="https://unlimited.waifu2x.net/" target="_blank" rel="noopener">waifu2x</a> で事前処理してからアップロードしてください。</p>
+      </div>
       <canvas id="grid-canvas"></canvas>
     </section>
 

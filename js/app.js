@@ -90,15 +90,31 @@ colsInput.addEventListener('input', drawGridPreview);
 btnSplit.addEventListener('click', () => {
   const rows = parseInt(rowsInput.value);
   const cols = parseInt(colsInput.value);
+  const doUpscale = document.getElementById('upscale-check').checked;
+  const scale = doUpscale ? 2 : 1;
+
+  // If upscale, create scaled source first
+  let src = sourceImg;
+  if (doUpscale) {
+    const upCv = document.createElement('canvas');
+    upCv.width = sourceImg.width * 2;
+    upCv.height = sourceImg.height * 2;
+    const upCtx = upCv.getContext('2d');
+    upCtx.imageSmoothingEnabled = true;
+    upCtx.imageSmoothingQuality = 'high';
+    upCtx.drawImage(sourceImg, 0, 0, upCv.width, upCv.height);
+    src = upCv;
+  }
+
   cells = [];
-  const cw = sourceImg.width / cols;
-  const ch = sourceImg.height / rows;
+  const cw = src.width / cols;
+  const ch = src.height / rows;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cv = document.createElement('canvas');
       cv.width = Math.round(cw);
       cv.height = Math.round(ch);
-      cv.getContext('2d').drawImage(sourceImg, Math.round(c * cw), Math.round(r * ch), Math.round(cw), Math.round(ch), 0, 0, cv.width, cv.height);
+      cv.getContext('2d').drawImage(src, Math.round(c * cw), Math.round(r * ch), Math.round(cw), Math.round(ch), 0, 0, cv.width, cv.height);
       cells.push({ canvas: cv, selected: true });
     }
   }
