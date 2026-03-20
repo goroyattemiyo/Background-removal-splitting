@@ -247,9 +247,9 @@ function removeColorBg(cell, color, tolerance) {
     const dist = Math.sqrt(dr * dr + dg * dg + db * db);
     if (dist < outer * 1.2) {
       const strength = Math.pow(1 - Math.min(dist / (outer * 1.2), 1), 0.5);
-      d[i]   = Math.max(0, Math.min(255, Math.round(d[i]   + dr * strength * 0.7)));
-      d[i+1] = Math.max(0, Math.min(255, Math.round(d[i+1] + dg * strength * 0.7)));
-      d[i+2] = Math.max(0, Math.min(255, Math.round(d[i+2] + db * strength * 0.7)));
+      d[i]   = Math.max(0, Math.min(255, Math.round(d[i]   + dr * strength * 1.0)));
+      d[i+1] = Math.max(0, Math.min(255, Math.round(d[i+1] + dg * strength * 1.0)));
+      d[i+2] = Math.max(0, Math.min(255, Math.round(d[i+2] + db * strength * 1.0)));
       if (d[i+3] < 255) {
         d[i+3] = Math.max(0, Math.round(d[i+3] * (1 - strength * 0.5)));
       }
@@ -300,9 +300,9 @@ function removeColorBg(cell, color, tolerance) {
     if (dist < outer * 2.5) {
       const a = d[i+3] / 255;
       // Push color away from background color
-      d[i]   = Math.min(255, Math.max(0, Math.round(d[i]   + (d[i]   - color.r) * (1 - a) * 0.8)));
-      d[i+1] = Math.min(255, Math.max(0, Math.round(d[i+1] + (d[i+1] - color.g) * (1 - a) * 0.8)));
-      d[i+2] = Math.min(255, Math.max(0, Math.round(d[i+2] + (d[i+2] - color.b) * (1 - a) * 0.8)));
+      d[i]   = Math.min(255, Math.max(0, Math.round(d[i]   + (d[i]   - color.r) * (1 - a) * 1.2)));
+      d[i+1] = Math.min(255, Math.max(0, Math.round(d[i+1] + (d[i+1] - color.g) * (1 - a) * 1.2)));
+      d[i+2] = Math.min(255, Math.max(0, Math.round(d[i+2] + (d[i+2] - color.b) * (1 - a) * 1.2)));
     }
   }
   // Pass 6: anti-alias - smooth jagged edges after erosion
