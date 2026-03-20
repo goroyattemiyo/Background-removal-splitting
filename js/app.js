@@ -305,6 +305,31 @@ function removeColorBg(cell, color, tolerance) {
       d[i+2] = Math.min(255, Math.max(0, Math.round(d[i+2] + (d[i+2] - color.b) * (1 - a) * 2)));
     }
   }
+  // Pass 6: anti-alias - smooth jagged edges after erosion
+  const aaData = new Uint8ClampedArray(d);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const idx = (y * w + x) * 4;
+      if (d[idx + 3] === 0) continue;
+      // Count transparent neighbors (in snapshot before smoothing)
+      let transCount = 0;
+      let totalNeighbors = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          totalNeighbors++;
+          const nIdx = ((y + dy) * w + (x + dx)) * 4;
+          if (aaData[nIdx + 3] === 0) transCount++;
+        }
+      }
+      // Only process edge pixels (has at least 1 transparent neighbor)
+      if (transCount > 0 && transCount < totalNeighbors) {
+        // Scale alpha based on how many neighbors are opaque
+        const opaqueFraction = (totalNeighbors - transCount) / totalNeighbors;
+        d[idx + 3] = Math.round(d[idx + 3] * opaqueFraction);
+      }
+    }
+  }
   ctx.putImageData(imgData, 0, 0);
 }
 
