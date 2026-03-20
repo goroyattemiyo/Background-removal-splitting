@@ -93,19 +93,35 @@ def get_anime_session():
 def remove_bg_hybrid(img, bg_r, bg_g, bg_b, tolerance=40, edge_softness=2):
     img = img.convert("RGBA")
     arr = np.array(img)
+
+    # Step 1: AI保護マスク
     session = get_anime_session()
     ai_result = rembg_remove(img, session=session)
     ai_alpha = np.array(ai_result)[:, :, 3]
     protect_mask = ai_alpha > 128
+
+    # Step 2: 近似色を統一（背景のムラを吸収）
     bg_color = np.array([bg_r, bg_g, bg_b], dtype=np.float32)
     rgb_f = arr[:, :, :3].astype(np.float32)
     rgb_dist = np.sqrt(((rgb_f - bg_color) ** 2).sum(axis=2))
+    unify_range = tolerance * 1.5
+    near_bg = rgb_dist < unify_range
+    unify_target = near_bg & (~protect_mask)
+    arr[unify_target, 0] = bg_r
+    arr[unify_target, 1] = bg_g
+    arr[unify_target, 2] = bg_b
+
+    # Step 3: 統一後の色で背景除去
+    rgb_f2 = arr[:, :, :3].astype(np.float32)
+    rgb_dist2 = np.sqrt(((rgb_f2 - bg_color) ** 2).sum(axis=2))
     outer = tolerance + 25.0
     alpha_color = np.where(
-        rgb_dist <= tolerance, 0.0,
-        np.where(rgb_dist >= outer, 255.0,
-                 ((rgb_dist - tolerance) / (outer - tolerance)) * 255.0)
+        rgb_dist2 <= tolerance, 0.0,
+        np.where(rgb_dist2 >= outer, 255.0,
+                 ((rgb_dist2 - tolerance) / (outer - tolerance)) * 255.0)
     ).astype(np.uint8)
+
+    # Step 4: AI保護マスクと合成
     final_alpha = np.where(protect_mask, 255, alpha_color).astype(np.uint8)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     final_alpha = cv2.morphologyEx(final_alpha, cv2.MORPH_CLOSE, kernel, iterations=1)
@@ -218,13 +234,16 @@ def process():
     cells = split_grid(img, rows, cols)
     results = []
     for i, cell in enumerate(cells):
-        if use_ai:
-            cell = ai_upscale(cell)
-        processed = remove_bg_color(cell, bg_r, bg_g, bg_b, tolerance=tol, edge_softness=es)
+        cell = cell.convert("RGBA")
+        do_remove_bg = data.get("remove_bg", False)
+        if do_remove_bg:
+            if use_ai:
+                cell = ai_upscale(cell)
+            cell = remove_bg_hybrid(cell, bg_r, bg_g, bg_b, tolerance=tol, edge_softness=es)
         if line_fmt:
-            processed = fit_to_line_sticker(processed)
+            cell = fit_to_line_sticker(cell)
         fname = "sticker_{:03d}.png".format(i + 1)
-        processed.save(os.path.join(out_dir, fname), "PNG")
+        cell.save(os.path.join(out_dir, fname), "PNG")
         results.append(fname)
     return jsonify({"results": results, "count": len(results)})
 
@@ -255,4 +274,4 @@ def download(sid):
 if __name__ == "__main__":
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
