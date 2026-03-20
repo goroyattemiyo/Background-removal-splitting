@@ -206,6 +206,7 @@ btnRemoveBg.addEventListener('click', async () => {
   bgStatus.textContent = '完了';
   btnRemoveBg.disabled = false;
   refreshCellPreviews();
+  stepSelect.scrollIntoView({ behavior: 'smooth' });
 });
 
 function removeColorBg(cell, color, tolerance) {

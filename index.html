@@ -56,7 +56,7 @@
       <div class="controls">
         <label><input type="radio" name="bg-mode" value="none" checked> なし</label>
         <label><input type="radio" name="bg-mode" value="color"> 色ベース（スポイト）</label>
-        <label><input type="radio" name="bg-mode" value="ai"> AI（isnet-anime）</label>
+        <label><input type="radio" name="bg-mode" value="ai"> AI（isnet-anime）— 初回はモデル約178MBダウンロード、次回以降キャッシュ済</label>
       </div>
       <div id="color-picker-area" class="hidden">
         <p>プレビュー画像をクリックして背景色を選択</p>
@@ -67,9 +67,7 @@
         </div>
         <label>許容値: <input type="range" id="tolerance" min="1" max="100" value="30"> <span id="tol-val">30</span></label>
       </div>
-      <div id="ai-area" class="hidden">
-        <p>初回はモデル（約178MB）をダウンロードします。2回目以降はキャッシュ済み。</p>
-      </div>
+      <div id="ai-area" class="hidden"></div>
       <button id="btn-remove-bg" class="hidden">背景除去を実行</button>
       <div id="bg-progress" class="hidden"><progress id="bg-bar" max="100" value="0"></progress> <span id="bg-status"></span></div>
     </section>
