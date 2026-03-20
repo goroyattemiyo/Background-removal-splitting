@@ -255,6 +255,35 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
+  // Pass 4: edge erode - remove 2px fringe bordering transparent pixels
+  const w = cell.canvas.width;
+  const h = cell.canvas.height;
+  const copy = new Uint8ClampedArray(d);
+  for (let pass = 0; pass < 2; pass++) {
+    const src = pass === 0 ? copy : new Uint8ClampedArray(d);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 4;
+        if (d[idx + 3] === 0) continue;
+        let hasTransparentNeighbor = false;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) { hasTransparentNeighbor = true; continue; }
+            const nIdx = (ny * w + nx) * 4;
+            if (src[nIdx + 3] === 0) hasTransparentNeighbor = true;
+          }
+        }
+        if (hasTransparentNeighbor) {
+          const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
+          if (dist < outer * 1.5) {
+            d[idx + 3] = 0;
+          }
+        }
+      }
+    }
+  }
   ctx.putImageData(imgData, 0, 0);
 }
 
