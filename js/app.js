@@ -26,7 +26,6 @@ const mainSelect     = $('main-select');
 const tabSelect      = $('tab-select');
 const stepBg         = $('step-bg');
 const colorPickerArea= $('color-picker-area');
-const aiArea         = $('ai-area');
 const pickerCanvas   = $('picker-canvas');
 const colorSwatch    = $('color-swatch');
 const colorLabel     = $('color-label');
@@ -158,7 +157,6 @@ document.querySelectorAll('input[name="bg-mode"]').forEach(radio => {
   radio.addEventListener('change', e => {
     bgMode = e.target.value;
     colorPickerArea.classList.toggle('hidden', bgMode !== 'color');
-    aiArea.classList.toggle('hidden', bgMode !== 'ai');
     btnRemoveBg.classList.toggle('hidden', bgMode === 'none');
     if (bgMode === 'color') setupPicker();
   });
@@ -197,8 +195,6 @@ btnRemoveBg.addEventListener('click', async () => {
     const cell = selected[i];
     if (bgMode === 'color' && pickedColor) {
       removeColorBg(cell, pickedColor, parseInt(tolInput.value));
-    } else if (bgMode === 'ai') {
-      await removeAiBg(cell);
     }
     bgBar.value = Math.round(((i + 1) / selected.length) * 100);
     bgStatus.textContent = `${i + 1} / ${selected.length}`;
@@ -229,25 +225,7 @@ function removeColorBg(cell, color, tolerance) {
   ctx.putImageData(imgData, 0, 0);
 }
 
-let rembgModule = null;
-async function removeAiBg(cell) {
-  if (!rembgModule) {
-    bgStatus.textContent = 'AIモデル読み込み中（初回のみ）...';
-    rembgModule = await import('https://unpkg.com/@bunnio/rembg-web@latest/dist/index.js');
-    rembgModule.rembgConfig.setBaseUrl('https://huggingface.co/bunnio/dis_anime/resolve/main');
-  }
-  const blob = await new Promise(r => cell.canvas.toBlob(r, 'image/png'));
-  const result = await rembgModule.remove(blob, {
-    session: rembgModule.newSession('isnet-anime'),
-    onProgress: info => { bgStatus.textContent = info.message; }
-  });
-  const img = new Image();
-  await new Promise(r => { img.onload = r; img.src = URL.createObjectURL(result); });
-  cell.canvas.width = img.width;
-  cell.canvas.height = img.height;
-  cell.canvas.getContext('2d').drawImage(img, 0, 0);
-  URL.revokeObjectURL(img.src);
-}
+
 
 function refreshCellPreviews() {
   const imgs = cellGrid.querySelectorAll('img');
