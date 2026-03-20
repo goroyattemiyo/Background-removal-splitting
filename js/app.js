@@ -255,12 +255,14 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
-  // Pass 4: edge erode - remove 2px fringe bordering transparent pixels
+  // Pass 4: edge erode - remove fringe bordering transparent pixels
+  // Configurable: more passes = deeper erosion
   const w = cell.canvas.width;
   const h = cell.canvas.height;
-  const copy = new Uint8ClampedArray(d);
-  for (let pass = 0; pass < 2; pass++) {
-    const src = pass === 0 ? copy : new Uint8ClampedArray(d);
+  const erodeThreshold = outer * 2.0;
+  const erodePasses = 5;
+  for (let pass = 0; pass < erodePasses; pass++) {
+    const snapshot = new Uint8ClampedArray(d);
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const idx = (y * w + x) * 4;
@@ -271,17 +273,36 @@ function removeColorBg(cell, color, tolerance) {
             if (dx === 0 && dy === 0) continue;
             const nx = x + dx, ny = y + dy;
             if (nx < 0 || nx >= w || ny < 0 || ny >= h) { hasTransparentNeighbor = true; continue; }
-            const nIdx = (ny * w + nx) * 4;
-            if (src[nIdx + 3] === 0) hasTransparentNeighbor = true;
+            if (snapshot[(ny * w + nx) * 4 + 3] === 0) hasTransparentNeighbor = true;
           }
         }
         if (hasTransparentNeighbor) {
-          const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
-          if (dist < outer * 1.5) {
+          const dr = d[idx] - color.r, dg = d[idx+1] - color.g, db = d[idx+2] - color.b;
+          const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+          if (dist < erodeThreshold) {
             d[idx + 3] = 0;
+          } else {
+            // Partial: reduce alpha for borderline pixels
+            const softEdge = erodeThreshold * 1.3;
+            if (dist < softEdge) {
+              d[idx + 3] = Math.round(d[idx + 3] * ((dist - erodeThreshold) / (softEdge - erodeThreshold)));
+            }
           }
         }
       }
+    }
+  }
+  // Pass 5: color neutralize - remove background color cast from remaining semi-transparent pixels
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i+3] === 0 || d[i+3] >= 250) continue;
+    const dr = d[i] - color.r, dg = d[i+1] - color.g, db = d[i+2] - color.b;
+    const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+    if (dist < outer * 2.5) {
+      const a = d[i+3] / 255;
+      // Push color away from background color
+      d[i]   = Math.min(255, Math.max(0, Math.round(d[i]   + (d[i]   - color.r) * (1 - a) * 2)));
+      d[i+1] = Math.min(255, Math.max(0, Math.round(d[i+1] + (d[i+1] - color.g) * (1 - a) * 2)));
+      d[i+2] = Math.min(255, Math.max(0, Math.round(d[i+2] + (d[i+2] - color.b) * (1 - a) * 2)));
     }
   }
   ctx.putImageData(imgData, 0, 0);
