@@ -14,17 +14,45 @@
   </header>
 
   <main>
-    <!-- Step 1: Upload -->
+    <!-- Step 1: Upload & Mode Select -->
     <section id="step-upload" class="step">
-      <h2>① 画像をアップロード</h2>
-      <div id="drop-zone">
-        <p>ここにドラッグ＆ドロップ<br>またはクリックして選択</p>
-        <input type="file" id="file-input" accept="image/*" hidden>
+      <h2>① モード選択＆画像アップロード</h2>
+      <div class="mode-toggle">
+        <label class="mode-btn active" id="mode-sheet-label">
+          <input type="radio" name="app-mode" value="sheet" checked>
+          <span>シート分割モード</span>
+          <small>1枚のシート画像をグリッドで分割</small>
+        </label>
+        <label class="mode-btn" id="mode-individual-label">
+          <input type="radio" name="app-mode" value="individual">
+          <span>個別画像モード</span>
+          <small>複数の画像をそのままスタンプに</small>
+        </label>
+      </div>
+      <!-- Sheet mode upload -->
+      <div id="upload-sheet">
+        <div id="drop-zone">
+          <p>ここにシート画像をドラッグ＆ドロップ<br>またはクリックして選択</p>
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </div>
+      </div>
+      <!-- Individual mode upload -->
+      <div id="upload-individual" class="hidden">
+        <div id="drop-zone-multi">
+          <p>複数の画像をドラッグ＆ドロップ<br>またはクリックして選択（8〜40枚）</p>
+          <input type="file" id="file-input-multi" accept="image/*" multiple hidden>
+        </div>
+        <div id="individual-preview"></div>
+        <p id="individual-count" class="hidden">
+          <span id="ind-count-num">0</span>枚読み込み済み
+          <span id="ind-count-warning" class="warning hidden">※ 8/16/24/32/40枚にしてください</span>
+        </p>
+        <button id="btn-use-individual" class="hidden">この画像でスタンプを作成</button>
       </div>
       <canvas id="preview-canvas" hidden></canvas>
     </section>
 
-    <!-- Step 2: Grid Split -->
+    <!-- Step 2: Grid Split (sheet mode only) -->
     <section id="step-split" class="step hidden">
       <h2>② グリッド設定＆分割</h2>
       <div class="controls">
