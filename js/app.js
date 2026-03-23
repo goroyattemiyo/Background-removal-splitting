@@ -10,6 +10,11 @@ let cells = [];             // { canvas, selected }[]
 let bgMode = 'none';
 let pickedColor = null;     // {r,g,b}
 
+// Grid line positions (in source image coordinates)
+let colLines = [];  // x positions of vertical lines (between cols)
+let rowLines = [];  // y positions of horizontal lines (between rows)
+let dragging = null; // { type: 'col'|'row', index: number }
+
 // --- DOM ---
 const $ = id => document.getElementById(id);
 const dropZone       = $('drop-zone');
@@ -29,6 +34,7 @@ const gridCanvas     = $('grid-canvas');
 const rowsInput      = $('rows');
 const colsInput      = $('cols');
 const btnSplit       = $('btn-split');
+const btnResetGrid   = $('btn-reset-grid');
 const stepSelect     = $('step-select');
 const cellGrid       = $('cell-grid');
 const selectedCount  = $('selected-count');
@@ -58,13 +64,10 @@ const pkgBar         = $('pkg-bar');
 document.querySelectorAll('input[name="app-mode"]').forEach(radio => {
   radio.addEventListener('change', e => {
     appMode = e.target.value;
-    // Toggle active class
     $('mode-sheet-label').classList.toggle('active', appMode === 'sheet');
     $('mode-individual-label').classList.toggle('active', appMode === 'individual');
-    // Show/hide upload areas
     uploadSheet.classList.toggle('hidden', appMode !== 'sheet');
     uploadIndividual.classList.toggle('hidden', appMode !== 'individual');
-    // Reset state
     resetAll();
   });
 });
@@ -75,6 +78,9 @@ function resetAll() {
   cells = [];
   bgMode = 'none';
   pickedColor = null;
+  colLines = [];
+  rowLines = [];
+  dragging = null;
   stepSplit.classList.add('hidden');
   stepSelect.classList.add('hidden');
   stepBg.classList.add('hidden');
@@ -138,14 +144,11 @@ function renderIndividualPreview() {
   individualFiles.forEach((file, i) => {
     const div = document.createElement('div');
     div.className = 'ind-thumb';
-
     const img = document.createElement('img');
     img.src = URL.createObjectURL(file);
-
     const num = document.createElement('span');
     num.className = 'ind-num';
     num.textContent = i + 1;
-
     const removeBtn = document.createElement('button');
     removeBtn.className = 'ind-remove';
     removeBtn.textContent = '✕';
@@ -154,7 +157,6 @@ function renderIndividualPreview() {
       individualFiles.splice(i, 1);
       renderIndividualPreview();
     });
-
     div.appendChild(img);
     div.appendChild(num);
     div.appendChild(removeBtn);
@@ -172,12 +174,10 @@ btnUseIndividual.addEventListener('click', async () => {
   btnUseIndividual.disabled = true;
   btnUseIndividual.textContent = '読み込み中...';
   cells = [];
-
   for (const file of individualFiles) {
     const canvas = await fileToCanvas(file);
     cells.push({ canvas, selected: true });
   }
-
   btnUseIndividual.disabled = false;
   btnUseIndividual.textContent = 'この画像でスタンプを作成';
   showSelectStep();
@@ -206,34 +206,172 @@ function fileToCanvas(file) {
 // ============================================
 function showSplitStep() {
   stepSplit.classList.remove('hidden');
+  initGridLines();
   drawGridPreview();
 }
 
-function drawGridPreview() {
+function initGridLines() {
   const rows = parseInt(rowsInput.value) || 5;
   const cols = parseInt(colsInput.value) || 8;
+  colLines = [];
+  rowLines = [];
+  for (let c = 1; c < cols; c++) colLines.push(Math.round(sourceImg.width * c / cols));
+  for (let r = 1; r < rows; r++) rowLines.push(Math.round(sourceImg.height * r / rows));
+}
+
+function drawGridPreview() {
+  if (!sourceImg) return;
   const ctx = gridCanvas.getContext('2d');
   gridCanvas.width = sourceImg.width;
   gridCanvas.height = sourceImg.height;
   ctx.drawImage(sourceImg, 0, 0);
+
+  // Draw vertical lines
   ctx.strokeStyle = 'rgba(0,113,227,0.7)';
   ctx.lineWidth = 2;
-  const cw = sourceImg.width / cols;
-  const ch = sourceImg.height / rows;
-  for (let c = 1; c < cols; c++) { ctx.beginPath(); ctx.moveTo(c * cw, 0); ctx.lineTo(c * cw, sourceImg.height); ctx.stroke(); }
-  for (let r = 1; r < rows; r++) { ctx.beginPath(); ctx.moveTo(0, r * ch); ctx.lineTo(sourceImg.width, r * ch); ctx.stroke(); }
+  for (const x of colLines) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, sourceImg.height); ctx.stroke();
+  }
+  // Draw horizontal lines
+  for (const y of rowLines) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(sourceImg.width, y); ctx.stroke();
+  }
+
+  // Draw drag handles
+  const handleSize = 8;
+  ctx.fillStyle = 'rgba(0,113,227,0.9)';
+  for (const x of colLines) {
+    ctx.beginPath();
+    ctx.arc(x, sourceImg.height / 2, handleSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const y of rowLines) {
+    ctx.beginPath();
+    ctx.arc(sourceImg.width / 2, y, handleSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
-rowsInput.addEventListener('input', drawGridPreview);
-colsInput.addEventListener('input', drawGridPreview);
+// Convert mouse event to source image coordinates
+function canvasToImg(e) {
+  const rect = gridCanvas.getBoundingClientRect();
+  const scaleX = sourceImg.width / rect.width;
+  const scaleY = sourceImg.height / rect.height;
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
+  };
+}
+
+// Hit test: find nearest grid line within grab distance
+function hitTest(imgX, imgY) {
+  const grabDist = Math.max(sourceImg.width, sourceImg.height) * 0.015; // 1.5% of image
+  for (let i = 0; i < colLines.length; i++) {
+    if (Math.abs(imgX - colLines[i]) < grabDist) return { type: 'col', index: i };
+  }
+  for (let i = 0; i < rowLines.length; i++) {
+    if (Math.abs(imgY - rowLines[i]) < grabDist) return { type: 'row', index: i };
+  }
+  return null;
+}
+
+gridCanvas.addEventListener('mousedown', e => {
+  const pos = canvasToImg(e);
+  const hit = hitTest(pos.x, pos.y);
+  if (hit) {
+    dragging = hit;
+    e.preventDefault();
+  }
+});
+
+gridCanvas.addEventListener('mousemove', e => {
+  const pos = canvasToImg(e);
+
+  // Update cursor
+  const hit = hitTest(pos.x, pos.y);
+  if (dragging) {
+    gridCanvas.style.cursor = dragging.type === 'col' ? 'col-resize' : 'row-resize';
+  } else if (hit) {
+    gridCanvas.style.cursor = hit.type === 'col' ? 'col-resize' : 'row-resize';
+  } else {
+    gridCanvas.style.cursor = 'default';
+  }
+
+  if (!dragging) return;
+
+  const minGap = 20; // Minimum gap between lines in source px
+
+  if (dragging.type === 'col') {
+    const idx = dragging.index;
+    const minX = (idx === 0 ? 0 : colLines[idx - 1]) + minGap;
+    const maxX = (idx === colLines.length - 1 ? sourceImg.width : colLines[idx + 1]) - minGap;
+    colLines[idx] = Math.round(Math.max(minX, Math.min(maxX, pos.x)));
+  } else {
+    const idx = dragging.index;
+    const minY = (idx === 0 ? 0 : rowLines[idx - 1]) + minGap;
+    const maxY = (idx === rowLines.length - 1 ? sourceImg.height : rowLines[idx + 1]) - minGap;
+    rowLines[idx] = Math.round(Math.max(minY, Math.min(maxY, pos.y)));
+  }
+
+  drawGridPreview();
+});
+
+window.addEventListener('mouseup', () => {
+  if (dragging) {
+    dragging = null;
+    gridCanvas.style.cursor = 'default';
+  }
+});
+
+// Touch support for mobile
+gridCanvas.addEventListener('touchstart', e => {
+  const touch = e.touches[0];
+  const pos = canvasToImg(touch);
+  const hit = hitTest(pos.x, pos.y);
+  if (hit) {
+    dragging = hit;
+    e.preventDefault();
+  }
+}, { passive: false });
+
+gridCanvas.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const pos = canvasToImg(touch);
+  const minGap = 20;
+
+  if (dragging.type === 'col') {
+    const idx = dragging.index;
+    const minX = (idx === 0 ? 0 : colLines[idx - 1]) + minGap;
+    const maxX = (idx === colLines.length - 1 ? sourceImg.width : colLines[idx + 1]) - minGap;
+    colLines[idx] = Math.round(Math.max(minX, Math.min(maxX, pos.x)));
+  } else {
+    const idx = dragging.index;
+    const minY = (idx === 0 ? 0 : rowLines[idx - 1]) + minGap;
+    const maxY = (idx === rowLines.length - 1 ? sourceImg.height : rowLines[idx + 1]) - minGap;
+    rowLines[idx] = Math.round(Math.max(minY, Math.min(maxY, pos.y)));
+  }
+
+  drawGridPreview();
+}, { passive: false });
+
+gridCanvas.addEventListener('touchend', () => { dragging = null; });
+
+// Re-init grid when rows/cols change
+rowsInput.addEventListener('input', () => { initGridLines(); drawGridPreview(); });
+colsInput.addEventListener('input', () => { initGridLines(); drawGridPreview(); });
+
+// Reset grid to even spacing
+btnResetGrid.addEventListener('click', () => { initGridLines(); drawGridPreview(); });
 
 btnSplit.addEventListener('click', () => {
-  const rows = parseInt(rowsInput.value);
-  const cols = parseInt(colsInput.value);
   const doUpscale = document.getElementById('upscale-check').checked;
 
   let src = sourceImg;
+  let scale = 1;
   if (doUpscale) {
+    scale = 2;
     const upCv = document.createElement('canvas');
     upCv.width = sourceImg.width * 2;
     upCv.height = sourceImg.height * 2;
@@ -244,15 +382,21 @@ btnSplit.addEventListener('click', () => {
     src = upCv;
   }
 
+  // Build boundary arrays from grid lines (in source coords, then scale)
+  const xBounds = [0, ...colLines, sourceImg.width].map(v => Math.round(v * scale));
+  const yBounds = [0, ...rowLines, sourceImg.height].map(v => Math.round(v * scale));
+
   cells = [];
-  const cw = src.width / cols;
-  const ch = src.height / rows;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
+  for (let r = 0; r < yBounds.length - 1; r++) {
+    for (let c = 0; c < xBounds.length - 1; c++) {
+      const sx = xBounds[c];
+      const sy = yBounds[r];
+      const sw = xBounds[c + 1] - sx;
+      const sh = yBounds[r + 1] - sy;
       const cv = document.createElement('canvas');
-      cv.width = Math.round(cw);
-      cv.height = Math.round(ch);
-      cv.getContext('2d').drawImage(src, Math.round(c * cw), Math.round(r * ch), Math.round(cw), Math.round(ch), 0, 0, cv.width, cv.height);
+      cv.width = sw;
+      cv.height = sh;
+      cv.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
       cells.push({ canvas: cv, selected: true });
     }
   }
@@ -318,7 +462,6 @@ document.querySelectorAll('input[name="bg-mode"]').forEach(radio => {
 tolInput.addEventListener('input', () => { tolVal.textContent = tolInput.value; });
 
 function setupPicker() {
-  // In individual mode, use the first selected cell as picker source
   let pickerSource = null;
   if (appMode === 'sheet' && sourceImg) {
     pickerSource = sourceImg;
@@ -365,7 +508,6 @@ btnRemoveBg.addEventListener('click', async () => {
     }
     bgBar.value = Math.round(((i + 1) / selected.length) * 100);
     bgStatus.textContent = `${i + 1} / ${selected.length}`;
-    // Yield to UI
     await new Promise(r => setTimeout(r, 0));
   }
   bgStatus.textContent = '完了';
@@ -504,12 +646,9 @@ btnPackage.addEventListener('click', async () => {
   const mainIdx = parseInt(mainSelect.value);
   const tabIdx = parseInt(tabSelect.value);
 
-  // main.png (240x240)
   zip.file('main.png', await resizeToBlob(cells[mainIdx].canvas, 240, 240));
-  // tab.png (96x74)
   zip.file('tab.png', await resizeToBlob(cells[tabIdx].canvas, 96, 74));
 
-  // Sticker images: 01.png - NN.png
   for (let i = 0; i < selected.length; i++) {
     const blob = await fitLineSticker(selected[i].canvas);
     const name = String(i + 1).padStart(2, '0') + '.png';
