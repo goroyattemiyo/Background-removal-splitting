@@ -58,13 +58,17 @@
       <div class="controls">
         <label>行: <input type="number" id="rows" value="5" min="1" max="20"></label>
         <label>列: <input type="number" id="cols" value="8" min="1" max="20"></label>
+        <button id="btn-reset-grid" class="btn-secondary">均等に戻す</button>
         <button id="btn-split">分割する</button>
       </div>
+      <p class="hint">※ グリッド線をドラッグして位置を微調整できます。</p>
       <div class="upscale-option">
         <label><input type="checkbox" id="upscale-check"> 分割前に2倍アップスケール（小さい画像の場合に推奨）</label>
         <p class="hint">より高品質な4倍アップスケールは <a href="https://unlimited.waifu2x.net/" target="_blank" rel="noopener">waifu2x</a> で事前処理してからアップロードしてください。</p>
       </div>
-      <canvas id="grid-canvas"></canvas>
+      <div id="grid-container">
+        <canvas id="grid-canvas"></canvas>
+      </div>
     </section>
 
     <!-- Step 3: Select Stickers -->
