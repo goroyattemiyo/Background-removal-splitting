@@ -3,8 +3,10 @@
 // ============================================
 
 // --- State ---
-let sourceImg = null;       // HTMLImageElement
-let cells = [];             // { canvas, selected, blob }[]
+let appMode = 'sheet';      // 'sheet' | 'individual'
+let sourceImg = null;       // HTMLImageElement (sheet mode)
+let individualFiles = [];   // File[] (individual mode)
+let cells = [];             // { canvas, selected }[]
 let bgMode = 'none';
 let pickedColor = null;     // {r,g,b}
 
@@ -12,6 +14,15 @@ let pickedColor = null;     // {r,g,b}
 const $ = id => document.getElementById(id);
 const dropZone       = $('drop-zone');
 const fileInput      = $('file-input');
+const dropZoneMulti  = $('drop-zone-multi');
+const fileInputMulti = $('file-input-multi');
+const uploadSheet    = $('upload-sheet');
+const uploadIndividual = $('upload-individual');
+const individualPreview = $('individual-preview');
+const individualCount = $('individual-count');
+const indCountNum    = $('ind-count-num');
+const indCountWarning = $('ind-count-warning');
+const btnUseIndividual = $('btn-use-individual');
 const previewCanvas  = $('preview-canvas');
 const stepSplit      = $('step-split');
 const gridCanvas     = $('grid-canvas');
@@ -42,7 +53,41 @@ const pkgProgress    = $('pkg-progress');
 const pkgBar         = $('pkg-bar');
 
 // ============================================
-// Step 1: Upload
+// Mode Toggle
+// ============================================
+document.querySelectorAll('input[name="app-mode"]').forEach(radio => {
+  radio.addEventListener('change', e => {
+    appMode = e.target.value;
+    // Toggle active class
+    $('mode-sheet-label').classList.toggle('active', appMode === 'sheet');
+    $('mode-individual-label').classList.toggle('active', appMode === 'individual');
+    // Show/hide upload areas
+    uploadSheet.classList.toggle('hidden', appMode !== 'sheet');
+    uploadIndividual.classList.toggle('hidden', appMode !== 'individual');
+    // Reset state
+    resetAll();
+  });
+});
+
+function resetAll() {
+  sourceImg = null;
+  individualFiles = [];
+  cells = [];
+  bgMode = 'none';
+  pickedColor = null;
+  stepSplit.classList.add('hidden');
+  stepSelect.classList.add('hidden');
+  stepBg.classList.add('hidden');
+  stepDownload.classList.add('hidden');
+  individualPreview.innerHTML = '';
+  individualCount.classList.add('hidden');
+  btnUseIndividual.classList.add('hidden');
+  cellGrid.innerHTML = '';
+  downloadPreview.innerHTML = '';
+}
+
+// ============================================
+// Step 1: Upload - Sheet Mode
 // ============================================
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
@@ -62,7 +107,102 @@ function handleFile(file) {
 }
 
 // ============================================
-// Step 2: Grid Split
+// Step 1: Upload - Individual Mode
+// ============================================
+dropZoneMulti.addEventListener('click', () => fileInputMulti.click());
+dropZoneMulti.addEventListener('dragover', e => { e.preventDefault(); dropZoneMulti.classList.add('drag-over'); });
+dropZoneMulti.addEventListener('dragleave', () => dropZoneMulti.classList.remove('drag-over'));
+dropZoneMulti.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZoneMulti.classList.remove('drag-over');
+  addIndividualFiles(e.dataTransfer.files);
+});
+fileInputMulti.addEventListener('change', e => {
+  if (e.target.files.length) addIndividualFiles(e.target.files);
+});
+
+function addIndividualFiles(fileList) {
+  const imageFiles = [...fileList].filter(f => f.type.startsWith('image/'));
+  individualFiles = individualFiles.concat(imageFiles);
+  if (individualFiles.length > 40) {
+    individualFiles = individualFiles.slice(0, 40);
+    alert('最大40枚までです。先頭40枚を使用します。');
+  }
+  renderIndividualPreview();
+}
+
+function renderIndividualPreview() {
+  individualPreview.innerHTML = '';
+  const allowed = [8, 16, 24, 32, 40];
+
+  individualFiles.forEach((file, i) => {
+    const div = document.createElement('div');
+    div.className = 'ind-thumb';
+
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+
+    const num = document.createElement('span');
+    num.className = 'ind-num';
+    num.textContent = i + 1;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'ind-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      individualFiles.splice(i, 1);
+      renderIndividualPreview();
+    });
+
+    div.appendChild(img);
+    div.appendChild(num);
+    div.appendChild(removeBtn);
+    individualPreview.appendChild(div);
+  });
+
+  const count = individualFiles.length;
+  indCountNum.textContent = count;
+  individualCount.classList.toggle('hidden', count === 0);
+  indCountWarning.classList.toggle('hidden', allowed.includes(count));
+  btnUseIndividual.classList.toggle('hidden', count === 0);
+}
+
+btnUseIndividual.addEventListener('click', async () => {
+  btnUseIndividual.disabled = true;
+  btnUseIndividual.textContent = '読み込み中...';
+  cells = [];
+
+  for (const file of individualFiles) {
+    const canvas = await fileToCanvas(file);
+    cells.push({ canvas, selected: true });
+  }
+
+  btnUseIndividual.disabled = false;
+  btnUseIndividual.textContent = 'この画像でスタンプを作成';
+  showSelectStep();
+});
+
+function fileToCanvas(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const cv = document.createElement('canvas');
+        cv.width = img.width;
+        cv.height = img.height;
+        cv.getContext('2d').drawImage(img, 0, 0);
+        resolve(cv);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ============================================
+// Step 2: Grid Split (Sheet Mode)
 // ============================================
 function showSplitStep() {
   stepSplit.classList.remove('hidden');
@@ -91,9 +231,7 @@ btnSplit.addEventListener('click', () => {
   const rows = parseInt(rowsInput.value);
   const cols = parseInt(colsInput.value);
   const doUpscale = document.getElementById('upscale-check').checked;
-  const scale = doUpscale ? 2 : 1;
 
-  // If upscale, create scaled source first
   let src = sourceImg;
   if (doUpscale) {
     const upCv = document.createElement('canvas');
@@ -129,7 +267,6 @@ function showSelectStep() {
   cellGrid.innerHTML = '';
   mainSelect.innerHTML = '';
   tabSelect.innerHTML = '';
-  const allowed = [8, 16, 24, 32, 40];
 
   cells.forEach((cell, i) => {
     const div = document.createElement('div');
@@ -181,11 +318,25 @@ document.querySelectorAll('input[name="bg-mode"]').forEach(radio => {
 tolInput.addEventListener('input', () => { tolVal.textContent = tolInput.value; });
 
 function setupPicker() {
-  if (!sourceImg) return;
+  // In individual mode, use the first selected cell as picker source
+  let pickerSource = null;
+  if (appMode === 'sheet' && sourceImg) {
+    pickerSource = sourceImg;
+  } else if (appMode === 'individual' && cells.length > 0) {
+    pickerSource = cells[0].canvas;
+  }
+  if (!pickerSource) return;
+
   const ctx = pickerCanvas.getContext('2d');
-  pickerCanvas.width = sourceImg.width;
-  pickerCanvas.height = sourceImg.height;
-  ctx.drawImage(sourceImg, 0, 0);
+  if (pickerSource instanceof HTMLImageElement) {
+    pickerCanvas.width = pickerSource.width;
+    pickerCanvas.height = pickerSource.height;
+    ctx.drawImage(pickerSource, 0, 0);
+  } else {
+    pickerCanvas.width = pickerSource.width;
+    pickerCanvas.height = pickerSource.height;
+    ctx.drawImage(pickerSource, 0, 0);
+  }
   pickerCanvas.style.cursor = 'crosshair';
   pickerCanvas.onclick = e => {
     const rect = pickerCanvas.getBoundingClientRect();
@@ -204,7 +355,7 @@ btnRemoveBg.addEventListener('click', async () => {
   btnRemoveBg.disabled = true;
   bgProgress.classList.remove('hidden');
   bgBar.value = 0;
-  bgStatus.textContent = '処理中...';
+  bgStatus.textContent = '...';
 
   const selected = cells.filter(c => c.selected);
   for (let i = 0; i < selected.length; i++) {
@@ -214,6 +365,8 @@ btnRemoveBg.addEventListener('click', async () => {
     }
     bgBar.value = Math.round(((i + 1) / selected.length) * 100);
     bgStatus.textContent = `${i + 1} / ${selected.length}`;
+    // Yield to UI
+    await new Promise(r => setTimeout(r, 0));
   }
   bgStatus.textContent = '完了';
   btnRemoveBg.disabled = false;
@@ -238,7 +391,7 @@ function removeColorBg(cell, color, tolerance) {
     if (dist <= tolerance) { d[i+3] = 0; }
     else if (dist < outer) { d[i+3] = Math.round(((dist - tolerance) / (outer - tolerance)) * 255); }
   }
-  // Pass 3: aggressive defringe - remove background color spill from all edge pixels
+  // Pass 3: defringe - remove background color spill from semi-transparent pixels only
   for (let i = 0; i < d.length; i += 4) {
     if (d[i+3] === 0 || d[i+3] >= 250) continue;
     const dr = d[i] - color.r;
@@ -254,7 +407,6 @@ function removeColorBg(cell, color, tolerance) {
     }
   }
   // Pass 4: edge erode - remove fringe bordering transparent pixels
-  // Configurable: more passes = deeper erosion
   const w = cell.canvas.width;
   const h = cell.canvas.height;
   const erodeThreshold = outer * 2.0;
@@ -280,7 +432,6 @@ function removeColorBg(cell, color, tolerance) {
           if (dist < erodeThreshold) {
             d[idx + 3] = 0;
           } else {
-            // Partial: reduce alpha for borderline pixels
             const softEdge = erodeThreshold * 1.3;
             if (dist < softEdge) {
               d[idx + 3] = Math.round(d[idx + 3] * ((dist - erodeThreshold) / (softEdge - erodeThreshold)));
@@ -297,7 +448,6 @@ function removeColorBg(cell, color, tolerance) {
     const dist = Math.sqrt(dr*dr + dg*dg + db*db);
     if (dist < outer * 2.5) {
       const a = d[i+3] / 255;
-      // Push color away from background color
       d[i]   = Math.min(255, Math.max(0, Math.round(d[i]   + (d[i]   - color.r) * (1 - a) * 1.2)));
       d[i+1] = Math.min(255, Math.max(0, Math.round(d[i+1] + (d[i+1] - color.g) * (1 - a) * 1.2)));
       d[i+2] = Math.min(255, Math.max(0, Math.round(d[i+2] + (d[i+2] - color.b) * (1 - a) * 1.2)));
@@ -309,7 +459,6 @@ function removeColorBg(cell, color, tolerance) {
     for (let x = 1; x < w - 1; x++) {
       const idx = (y * w + x) * 4;
       if (d[idx + 3] === 0) continue;
-      // Count transparent neighbors (in snapshot before smoothing)
       let transCount = 0;
       let totalNeighbors = 0;
       for (let dy = -1; dy <= 1; dy++) {
@@ -320,9 +469,7 @@ function removeColorBg(cell, color, tolerance) {
           if (aaData[nIdx + 3] === 0) transCount++;
         }
       }
-      // Only process edge pixels (has at least 1 transparent neighbor)
       if (transCount > 0 && transCount < totalNeighbors) {
-        // Scale alpha based on how many neighbors are opaque
         const opaqueFraction = (totalNeighbors - transCount) / totalNeighbors;
         d[idx + 3] = Math.round(d[idx + 3] * opaqueFraction);
       }
@@ -330,8 +477,6 @@ function removeColorBg(cell, color, tolerance) {
   }
   ctx.putImageData(imgData, 0, 0);
 }
-
-
 
 function refreshCellPreviews() {
   const imgs = cellGrid.querySelectorAll('img');
@@ -350,7 +495,7 @@ btnPackage.addEventListener('click', async () => {
   const selected = cells.filter(c => c.selected);
   const allowed = [8, 16, 24, 32, 40];
   if (!allowed.includes(selected.length)) {
-    alert(`スタンプは ${allowed.join('/')} 個にしてください（現在: ${selected.length}個）`);
+    alert(`スタンプ数は ${allowed.join('/')} 個のいずれかにしてください（現在: ${selected.length}個）`);
     btnPackage.disabled = false;
     return;
   }
@@ -408,7 +553,6 @@ function fitLineSticker(srcCanvas) {
   let ratio = Math.min(maxW / srcCanvas.width, maxH / srcCanvas.height, 1);
   let w = Math.round(srcCanvas.width * ratio);
   let h = Math.round(srcCanvas.height * ratio);
-  // ensure minimum 80px
   if (w < minSide || h < minSide) {
     ratio = Math.max(minSide / srcCanvas.width, minSide / srcCanvas.height);
     w = Math.round(srcCanvas.width * ratio);
@@ -416,7 +560,6 @@ function fitLineSticker(srcCanvas) {
   }
   w = w % 2 === 0 ? w : w + 1;
   h = h % 2 === 0 ? h : h + 1;
-  // clamp to max after even adjustment
   if (w > maxW) w = maxW;
   if (h > maxH) h = maxH;
   const cv = document.createElement('canvas');
