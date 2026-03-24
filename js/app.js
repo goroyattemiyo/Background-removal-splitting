@@ -586,7 +586,24 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
-
+  // Pass 3.7: neutralize residual bg-colored pixels
+  // Pixels still opaque but bg-colored: reduce alpha and shift color toward gray
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      if (d[idx + 3] === 0) continue;
+      const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
+      if (dist < floodThreshold) {
+        // Shift color toward neutral gray (128)
+        const blend = 0.6;
+        d[idx]   = Math.round(d[idx]   * (1 - blend) + 128 * blend);
+        d[idx+1] = Math.round(d[idx+1] * (1 - blend) + 128 * blend);
+        d[idx+2] = Math.round(d[idx+2] * (1 - blend) + 128 * blend);
+        // Reduce alpha
+        d[idx+3] = Math.round(d[idx+3] * 0.4);
+      }
+    }
+  }
   // Pass 4: edge erode - remove fringe bordering transparent pixels
 
   const erodeThreshold = outer * 2.0;
