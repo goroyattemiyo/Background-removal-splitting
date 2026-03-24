@@ -549,7 +549,8 @@ function removeColorBg(cell, color, tolerance) {
     if (dist < unifyRange) { d[i] = color.r; d[i+1] = color.g; d[i+2] = color.b; }
   }
   // Pass 2: remove unified bg (wider fade band)
-  const outer = tolerance + 60;
+  // outer = tolerance * 1.5 so the fade band stays proportional to tolerance
+  const outer = Math.round(tolerance * 1.5);
   for (let i = 0; i < d.length; i += 4) {
     if (protectedPixels.has(i)) continue;
     const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
@@ -575,7 +576,7 @@ function removeColorBg(cell, color, tolerance) {
     const w = cell.canvas.width;
   const h = cell.canvas.height;
     // Pass 3.5: flood fill - remove isolated background-color regions
-  const floodThreshold = tolerance * 2.5;
+  const floodThreshold = tolerance * 1.8;
   let changed = true;
   const maxFloodPasses = 10;
   let floodPass = 0;
@@ -634,10 +635,11 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
-  // Pass 4: edge erode - remove fringe bordering transparent pixels
-
-  const erodeThreshold = outer * 2.0;
-  const erodePasses = 5;
+  // Pass 4: edge erode - remove only pixels very close to bg color at the transparent edge
+  // erodeThreshold kept tight (outer * 0.5) so only genuine bg fringe is removed,
+  // not actual character colors. erodePasses reduced to 2 to limit inward erosion.
+  const erodeThreshold = outer * 0.5;
+  const erodePasses = 2;
   for (let pass = 0; pass < erodePasses; pass++) {
     const snapshot = new Uint8ClampedArray(d);
     for (let y = 0; y < h; y++) {
@@ -660,7 +662,7 @@ function removeColorBg(cell, color, tolerance) {
           if (dist < erodeThreshold) {
             d[idx + 3] = 0;
           } else {
-            const softEdge = erodeThreshold * 1.3;
+            const softEdge = erodeThreshold * 1.5;
             if (dist < softEdge) {
               d[idx + 3] = Math.round(d[idx + 3] * ((dist - erodeThreshold) / (softEdge - erodeThreshold)));
             }
