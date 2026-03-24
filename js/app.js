@@ -520,6 +520,16 @@ function removeColorBg(cell, color, tolerance) {
   const ctx = cell.canvas.getContext('2d');
   const imgData = ctx.getImageData(0, 0, cell.canvas.width, cell.canvas.height);
   const d = imgData.data;
+    // Pass 0: protect dark outline pixels
+  // Mark dark pixels by storing brightness flag in a Set
+  const protectedPixels = new Set();
+  for (let i = 0; i < d.length; i += 4) {
+    const brightness = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+    if (brightness < 80) {
+      protectedPixels.add(i);
+    }
+  }
+
   const unifyRange = tolerance * 1.5;
   // Pass 1: unify near-bg colors
   for (let i = 0; i < d.length; i += 4) {
