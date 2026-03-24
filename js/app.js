@@ -579,7 +579,7 @@ function removeColorBg(cell, color, tolerance) {
             if (nDist < floodThreshold) bgCount++;
           }
         }
-        if (bgCount >= total * 0.6) {
+        if (bgCount >= total * 0.5) {
           d[idx + 3] = 0;
           changed = true;
         }
