@@ -551,7 +551,7 @@ function removeColorBg(cell, color, tolerance) {
     const w = cell.canvas.width;
   const h = cell.canvas.height;
     // Pass 3.5: flood fill - remove isolated background-color regions
-  const floodThreshold = tolerance * 1.8;
+  const floodThreshold = tolerance * 2.5;
   let changed = true;
   const maxFloodPasses = 10;
   let floodPass = 0;
@@ -567,8 +567,8 @@ function removeColorBg(cell, color, tolerance) {
         if (dist > floodThreshold) continue;
         let bgCount = 0;
         let total = 0;
-        for (let dy = -2; dy <= 2; dy++) {
-          for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = -3; dy <= 3; dy++) {
+          for (let dx = -3; dx <= 3; dx++) {
             if (dx === 0 && dy === 0) continue;
             const nx = x + dx, ny = y + dy;
             if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
