@@ -548,6 +548,43 @@ function removeColorBg(cell, color, tolerance) {
       d[i+3] = Math.max(0, Math.round(d[i+3] * (1 - strength * 0.5)));
     }
   }
+    // Pass 3.5: flood fill - remove isolated background-color regions
+  const floodThreshold = tolerance * 1.8;
+  let changed = true;
+  const maxFloodPasses = 10;
+  let floodPass = 0;
+  while (changed && floodPass < maxFloodPasses) {
+    changed = false;
+    floodPass++;
+    const snap = new Uint8ClampedArray(d);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 4;
+        if (d[idx + 3] === 0) continue;
+        const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
+        if (dist > floodThreshold) continue;
+        let bgCount = 0;
+        let total = 0;
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            total++;
+            const nIdx = (ny * w + nx) * 4;
+            if (snap[nIdx + 3] === 0) { bgCount++; continue; }
+            const nDist = Math.sqrt((snap[nIdx] - color.r) ** 2 + (snap[nIdx+1] - color.g) ** 2 + (snap[nIdx+2] - color.b) ** 2);
+            if (nDist < floodThreshold) bgCount++;
+          }
+        }
+        if (bgCount >= total * 0.6) {
+          d[idx + 3] = 0;
+          changed = true;
+        }
+      }
+    }
+  }
+
   // Pass 4: edge erode - remove fringe bordering transparent pixels
   const w = cell.canvas.width;
   const h = cell.canvas.height;
