@@ -520,13 +520,24 @@ function removeColorBg(cell, color, tolerance) {
   const ctx = cell.canvas.getContext('2d');
   const imgData = ctx.getImageData(0, 0, cell.canvas.width, cell.canvas.height);
   const d = imgData.data;
-    // Pass 0: protect dark outline pixels
-  // Mark dark pixels by storing brightness flag in a Set
+  // Pass 0: protect dark outline pixels AND bright non-bg pixels (text body)
+  // - Dark pixels (brightness < 80)  → black outlines, pupils, etc.
+  // - Bright pixels far from bg color (brightness > 200 AND colorDist > tolerance*2) → white/bright text body
+  // Mid-range pixels that are close to bg color (e.g. green fringe on text) are NOT protected
+  // so that Pass 4 edge erosion can cleanly remove them.
   const protectedPixels = new Set();
   for (let i = 0; i < d.length; i += 4) {
+    if (d[i+3] < 10) continue; // skip fully transparent
     const brightness = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
     if (brightness < 80) {
+      // Dark pixel: black outline / pupil / nose
       protectedPixels.add(i);
+    } else if (brightness > 200) {
+      // Bright pixel: only protect if color is far from bg (not a bright-green fringe)
+      const distBg = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
+      if (distBg > tolerance * 2) {
+        protectedPixels.add(i);
+      }
     }
   }
 
@@ -633,6 +644,7 @@ function removeColorBg(cell, color, tolerance) {
       for (let x = 0; x < w; x++) {
         const idx = (y * w + x) * 4;
         if (d[idx + 3] === 0) continue;
+        if (protectedPixels.has(idx)) continue;
         let hasTransparentNeighbor = false;
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
