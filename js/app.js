@@ -533,12 +533,14 @@ function removeColorBg(cell, color, tolerance) {
   const unifyRange = tolerance * 1.5;
   // Pass 1: unify near-bg colors
   for (let i = 0; i < d.length; i += 4) {
+    if (protectedPixels.has(i)) continue;
     const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
     if (dist < unifyRange) { d[i] = color.r; d[i+1] = color.g; d[i+2] = color.b; }
   }
   // Pass 2: remove unified bg (wider fade band)
   const outer = tolerance + 60;
   for (let i = 0; i < d.length; i += 4) {
+    if (protectedPixels.has(i)) continue;
     const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
     if (dist <= tolerance) { d[i+3] = 0; }
     else if (dist < outer) { d[i+3] = Math.round(((dist - tolerance) / (outer - tolerance)) * 255); }
@@ -546,6 +548,7 @@ function removeColorBg(cell, color, tolerance) {
   // Pass 3: defringe - remove background color spill from semi-transparent pixels only
   for (let i = 0; i < d.length; i += 4) {
     if (d[i+3] === 0 || d[i+3] >= 250) continue;
+    if (protectedPixels.has(i)) continue;
     const dr = d[i] - color.r;
     const dg = d[i+1] - color.g;
     const db = d[i+2] - color.b;
@@ -573,6 +576,7 @@ function removeColorBg(cell, color, tolerance) {
       for (let x = 0; x < w; x++) {
         const idx = (y * w + x) * 4;
         if (d[idx + 3] === 0) continue;
+        if (protectedPixels.has(idx)) continue;
         const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
         if (dist > floodThreshold) continue;
         let bgCount = 0;
@@ -601,6 +605,7 @@ function removeColorBg(cell, color, tolerance) {
     for (let x = 0; x < w; x++) {
       const idx = (y * w + x) * 4;
       if (d[idx + 3] === 0) continue;
+      if (protectedPixels.has(idx)) continue;
       const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
       if (dist < floodThreshold) {
         // Check if any neighbor is transparent (within 4px radius)
