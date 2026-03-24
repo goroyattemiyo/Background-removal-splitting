@@ -705,6 +705,24 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
+  // Pass 7: desaturate residual bg-tinted pixels
+  // Opaque pixels that are still close to the bg color hue are pushed toward gray
+  // so leftover green/colored fringe becomes neutral and less visible.
+  // Protected pixels (black outlines, white text body) are skipped.
+  const desat7Threshold = outer * 1.2; // only affect pixels within this dist of bg color
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i+3] < 128) continue;           // skip transparent/semi
+    if (protectedPixels.has(i)) continue;  // skip protected (outlines, text)
+    const dr = d[i] - color.r, dg = d[i+1] - color.g, db = d[i+2] - color.b;
+    const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+    if (dist >= desat7Threshold) continue; // pixel is far enough from bg: leave it alone
+    // Desaturation strength: stronger the closer to bg color (0 at threshold, 1 at 0)
+    const strength = Math.pow(1 - dist / desat7Threshold, 1.5);
+    const gray = Math.round(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+    d[i]   = Math.round(d[i]   + (gray - d[i])   * strength);
+    d[i+1] = Math.round(d[i+1] + (gray - d[i+1]) * strength);
+    d[i+2] = Math.round(d[i+2] + (gray - d[i+2]) * strength);
+  }
   ctx.putImageData(imgData, 0, 0);
 }
 
