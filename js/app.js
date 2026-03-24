@@ -548,6 +548,8 @@ function removeColorBg(cell, color, tolerance) {
       d[i+3] = Math.max(0, Math.round(d[i+3] * (1 - strength * 0.5)));
     }
   }
+    const w = cell.canvas.width;
+  const h = cell.canvas.height;
     // Pass 3.5: flood fill - remove isolated background-color regions
   const floodThreshold = tolerance * 1.8;
   let changed = true;
@@ -586,8 +588,7 @@ function removeColorBg(cell, color, tolerance) {
   }
 
   // Pass 4: edge erode - remove fringe bordering transparent pixels
-  const w = cell.canvas.width;
-  const h = cell.canvas.height;
+
   const erodeThreshold = outer * 2.0;
   const erodePasses = 5;
   for (let pass = 0; pass < erodePasses; pass++) {
