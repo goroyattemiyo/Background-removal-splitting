@@ -586,21 +586,25 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
-  // Pass 3.7: neutralize residual bg-colored pixels
-  // Pixels still opaque but bg-colored: reduce alpha and shift color toward gray
+ // Pass 3.7: force-remove residual bg-colored opaque pixels
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = (y * w + x) * 4;
       if (d[idx + 3] === 0) continue;
       const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
       if (dist < floodThreshold) {
-        // Shift color toward neutral gray (128)
-        const blend = 0.6;
-        d[idx]   = Math.round(d[idx]   * (1 - blend) + 128 * blend);
-        d[idx+1] = Math.round(d[idx+1] * (1 - blend) + 128 * blend);
-        d[idx+2] = Math.round(d[idx+2] * (1 - blend) + 128 * blend);
-        // Reduce alpha
-        d[idx+3] = Math.round(d[idx+3] * 0.4);
+        // Check if any neighbor is transparent (within 4px radius)
+        let nearTransparent = false;
+        for (let dy = -4; dy <= 4 && !nearTransparent; dy++) {
+          for (let dx = -4; dx <= 4 && !nearTransparent; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            if (d[(ny * w + nx) * 4 + 3] === 0) nearTransparent = true;
+          }
+        }
+        if (nearTransparent) {
+          d[idx + 3] = 0;
+        }
       }
     }
   }
