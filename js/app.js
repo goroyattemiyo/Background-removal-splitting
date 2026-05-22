@@ -11,52 +11,66 @@ let bgMode = 'none';
 let pickedColor = null;     // {r,g,b}
 
 // Grid line positions (in source image coordinates)
-let colLines = [];  // x positions of vertical lines (between cols)
-let rowLines = [];  // y positions of horizontal lines (between rows)
-let dragging = null; // { type: 'col'|'row', index: number }
+let colLines = [];
+let rowLines = [];
+let dragging = null;
 
 // --- DOM ---
 const $ = id => document.getElementById(id);
-const dropZone       = $('drop-zone');
-const fileInput      = $('file-input');
-const dropZoneMulti  = $('drop-zone-multi');
-const fileInputMulti = $('file-input-multi');
-const uploadSheet    = $('upload-sheet');
-const uploadIndividual = $('upload-individual');
+const dropZone        = $('drop-zone');
+const fileInput       = $('file-input');
+const dropZoneMulti   = $('drop-zone-multi');
+const fileInputMulti  = $('file-input-multi');
+const uploadSheet     = $('upload-sheet');
+const uploadIndividual= $('upload-individual');
 const individualPreview = $('individual-preview');
 const individualCount = $('individual-count');
-const indCountNum    = $('ind-count-num');
+const indCountNum     = $('ind-count-num');
 const indCountWarning = $('ind-count-warning');
-const btnUseIndividual = $('btn-use-individual');
-const previewCanvas  = $('preview-canvas');
-const stepSplit      = $('step-split');
-const gridCanvas     = $('grid-canvas');
-const rowsInput      = $('rows');
-const colsInput      = $('cols');
-const btnSplit       = $('btn-split');
-const btnResetGrid   = $('btn-reset-grid');
-const stepSelect     = $('step-select');
-const cellGrid       = $('cell-grid');
-const selectedCount  = $('selected-count');
-const countWarning   = $('count-warning');
-const mainSelect     = $('main-select');
-const tabSelect      = $('tab-select');
-const stepBg         = $('step-bg');
-const colorPickerArea= $('color-picker-area');
-const pickerCanvas   = $('picker-canvas');
-const colorSwatch    = $('color-swatch');
-const colorLabel     = $('color-label');
-const tolInput       = $('tolerance');
-const tolVal         = $('tol-val');
-const btnRemoveBg    = $('btn-remove-bg');
-const bgProgress     = $('bg-progress');
-const bgBar          = $('bg-bar');
-const bgStatus       = $('bg-status');
-const stepDownload   = $('step-download');
-const downloadPreview= $('download-preview');
-const btnPackage     = $('btn-package');
-const pkgProgress    = $('pkg-progress');
-const pkgBar         = $('pkg-bar');
+const btnUseIndividual= $('btn-use-individual');
+const previewCanvas   = $('preview-canvas');
+const stepSplit       = $('step-split');
+const gridCanvas      = $('grid-canvas');
+const rowsInput       = $('rows');
+const colsInput       = $('cols');
+const btnSplit        = $('btn-split');
+const btnResetGrid    = $('btn-reset-grid');
+const stepSelect      = $('step-select');
+const cellGrid        = $('cell-grid');
+const selectedCount   = $('selected-count');
+const countWarning    = $('count-warning');
+const mainSelect      = $('main-select');
+const tabSelect       = $('tab-select');
+const stepBg          = $('step-bg');
+const colorPickerArea = $('color-picker-area');
+const pickerCanvas    = $('picker-canvas');
+const colorSwatch     = $('color-swatch');
+const colorLabel      = $('color-label');
+const tolInput        = $('tolerance');
+const tolVal          = $('tol-val');
+const btnRemoveBg     = $('btn-remove-bg');
+const bgProgress      = $('bg-progress');
+const bgBar           = $('bg-bar');
+const bgStatus        = $('bg-status');
+const stepDownload    = $('step-download');
+const downloadPreview = $('download-preview');
+const btnPackage      = $('btn-package');
+const pkgProgress     = $('pkg-progress');
+const pkgBar          = $('pkg-bar');
+
+// Color input elements
+const ciHex           = $('ci-hex');
+const ciR             = $('ci-r');
+const ciG             = $('ci-g');
+const ciB             = $('ci-b');
+const colorNativePick = $('color-native-pick');
+const btnCiApply      = $('btn-ci-apply');
+
+// Cell number selector elements
+const cellNumInput    = $('cell-num-input');
+const btnNumSelect    = $('btn-num-select');
+const btnNumAdd       = $('btn-num-add');
+const cellNumError    = $('cell-num-error');
 
 // ============================================
 // Mode Toggle
@@ -226,18 +240,15 @@ function drawGridPreview() {
   gridCanvas.height = sourceImg.height;
   ctx.drawImage(sourceImg, 0, 0);
 
-  // Draw vertical lines
   ctx.strokeStyle = 'rgba(0,113,227,0.7)';
   ctx.lineWidth = 2;
   for (const x of colLines) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, sourceImg.height); ctx.stroke();
   }
-  // Draw horizontal lines
   for (const y of rowLines) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(sourceImg.width, y); ctx.stroke();
   }
 
-  // Draw drag handles
   const handleSize = 8;
   ctx.fillStyle = 'rgba(0,113,227,0.9)';
   for (const x of colLines) {
@@ -252,7 +263,6 @@ function drawGridPreview() {
   }
 }
 
-// Convert mouse event to source image coordinates
 function canvasToImg(e) {
   const rect = gridCanvas.getBoundingClientRect();
   const scaleX = sourceImg.width / rect.width;
@@ -263,9 +273,8 @@ function canvasToImg(e) {
   };
 }
 
-// Hit test: find nearest grid line within grab distance
 function hitTest(imgX, imgY) {
-  const grabDist = Math.max(sourceImg.width, sourceImg.height) * 0.015; // 1.5% of image
+  const grabDist = Math.max(sourceImg.width, sourceImg.height) * 0.015;
   for (let i = 0; i < colLines.length; i++) {
     if (Math.abs(imgX - colLines[i]) < grabDist) return { type: 'col', index: i };
   }
@@ -278,16 +287,11 @@ function hitTest(imgX, imgY) {
 gridCanvas.addEventListener('mousedown', e => {
   const pos = canvasToImg(e);
   const hit = hitTest(pos.x, pos.y);
-  if (hit) {
-    dragging = hit;
-    e.preventDefault();
-  }
+  if (hit) { dragging = hit; e.preventDefault(); }
 });
 
 gridCanvas.addEventListener('mousemove', e => {
   const pos = canvasToImg(e);
-
-  // Update cursor
   const hit = hitTest(pos.x, pos.y);
   if (dragging) {
     gridCanvas.style.cursor = dragging.type === 'col' ? 'col-resize' : 'row-resize';
@@ -296,11 +300,9 @@ gridCanvas.addEventListener('mousemove', e => {
   } else {
     gridCanvas.style.cursor = 'default';
   }
-
   if (!dragging) return;
 
-  const minGap = 20; // Minimum gap between lines in source px
-
+  const minGap = 20;
   if (dragging.type === 'col') {
     const idx = dragging.index;
     const minX = (idx === 0 ? 0 : colLines[idx - 1]) + minGap;
@@ -312,26 +314,18 @@ gridCanvas.addEventListener('mousemove', e => {
     const maxY = (idx === rowLines.length - 1 ? sourceImg.height : rowLines[idx + 1]) - minGap;
     rowLines[idx] = Math.round(Math.max(minY, Math.min(maxY, pos.y)));
   }
-
   drawGridPreview();
 });
 
 window.addEventListener('mouseup', () => {
-  if (dragging) {
-    dragging = null;
-    gridCanvas.style.cursor = 'default';
-  }
+  if (dragging) { dragging = null; gridCanvas.style.cursor = 'default'; }
 });
 
-// Touch support for mobile
 gridCanvas.addEventListener('touchstart', e => {
   const touch = e.touches[0];
   const pos = canvasToImg(touch);
   const hit = hitTest(pos.x, pos.y);
-  if (hit) {
-    dragging = hit;
-    e.preventDefault();
-  }
+  if (hit) { dragging = hit; e.preventDefault(); }
 }, { passive: false });
 
 gridCanvas.addEventListener('touchmove', e => {
@@ -340,7 +334,6 @@ gridCanvas.addEventListener('touchmove', e => {
   const touch = e.touches[0];
   const pos = canvasToImg(touch);
   const minGap = 20;
-
   if (dragging.type === 'col') {
     const idx = dragging.index;
     const minX = (idx === 0 ? 0 : colLines[idx - 1]) + minGap;
@@ -352,17 +345,13 @@ gridCanvas.addEventListener('touchmove', e => {
     const maxY = (idx === rowLines.length - 1 ? sourceImg.height : rowLines[idx + 1]) - minGap;
     rowLines[idx] = Math.round(Math.max(minY, Math.min(maxY, pos.y)));
   }
-
   drawGridPreview();
 }, { passive: false });
 
 gridCanvas.addEventListener('touchend', () => { dragging = null; });
 
-// Re-init grid when rows/cols change
 rowsInput.addEventListener('input', () => { initGridLines(); drawGridPreview(); });
 colsInput.addEventListener('input', () => { initGridLines(); drawGridPreview(); });
-
-// Reset grid to even spacing
 btnResetGrid.addEventListener('click', () => { initGridLines(); drawGridPreview(); });
 
 btnSplit.addEventListener('click', () => {
@@ -382,7 +371,6 @@ btnSplit.addEventListener('click', () => {
     src = upCv;
   }
 
-  // Build boundary arrays from grid lines (in source coords, then scale)
   const xBounds = [0, ...colLines, sourceImg.width].map(v => Math.round(v * scale));
   const yBounds = [0, ...rowLines, sourceImg.height].map(v => Math.round(v * scale));
 
@@ -404,8 +392,92 @@ btnSplit.addEventListener('click', () => {
 });
 
 // ============================================
-// Step 3: Select
+// Step 3: Select — 番号指定パーサー
 // ============================================
+
+/**
+ * "1~4, 6, 8~10" などをパースして 0-based インデックスの Set を返す。
+ * 区切り: 半角/全角カンマ、読点
+ * 範囲区切り: ~ / ～ / - / –
+ * @param {string} text
+ * @param {number} total セルの総数
+ * @returns {{ indices: Set<number>|null, error: string }}
+ */
+function parseCellNumbers(text, total) {
+  if (!text.trim()) return { indices: null, error: '番号が入力されていません' };
+
+  // 全角→半角 & 全角チルダ→半角
+  const normalized = text
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[、，,]/g, ',')
+    .replace(/[〜～]/g, '~')
+    .replace(/–/g, '-');
+
+  const parts = normalized.split(',').map(s => s.trim()).filter(Boolean);
+  const indices = new Set();
+
+  for (const part of parts) {
+    // 範囲: 数字 ~ 数字 or 数字 - 数字
+    const rangeMatch = part.match(/^(\d+)\s*[~\-]\s*(\d+)$/);
+    if (rangeMatch) {
+      const a = parseInt(rangeMatch[1]);
+      const b = parseInt(rangeMatch[2]);
+      if (isNaN(a) || isNaN(b)) return { indices: null, error: `"${part}" は無効な範囲です` };
+      const lo = Math.min(a, b);
+      const hi = Math.max(a, b);
+      if (lo < 1) return { indices: null, error: `番号は1以上で指定してください（"${part}"）` };
+      if (hi > total) return { indices: null, error: `番号 ${hi} はセル数(${total})を超えています` };
+      for (let n = lo; n <= hi; n++) indices.add(n - 1);  // 0-based
+      continue;
+    }
+    // 単一数字
+    const singleMatch = part.match(/^(\d+)$/);
+    if (singleMatch) {
+      const n = parseInt(singleMatch[1]);
+      if (n < 1) return { indices: null, error: `番号は1以上で指定してください（"${part}"）` };
+      if (n > total) return { indices: null, error: `番号 ${n} はセル数(${total})を超えています` };
+      indices.add(n - 1);
+      continue;
+    }
+    return { indices: null, error: `"${part}" を解釈できません` };
+  }
+
+  if (indices.size === 0) return { indices: null, error: '有効な番号がありません' };
+  return { indices, error: '' };
+}
+
+function applyNumSelection(mode) {
+  // mode: 'replace' | 'add'
+  const { indices, error } = parseCellNumbers(cellNumInput.value, cells.length);
+  if (error) {
+    cellNumError.textContent = error;
+    cellNumInput.classList.add('error');
+    return;
+  }
+  cellNumError.textContent = '';
+  cellNumInput.classList.remove('error');
+
+  if (mode === 'replace') {
+    cells.forEach((c, i) => { c.selected = indices.has(i); });
+  } else {
+    // add
+    indices.forEach(i => { cells[i].selected = true; });
+  }
+
+  // DOM 更新
+  const items = cellGrid.querySelectorAll('.cell-item');
+  cells.forEach((c, i) => { items[i]?.classList.toggle('selected', c.selected); });
+  updateSelectionUI();
+}
+
+btnNumSelect.addEventListener('click', () => applyNumSelection('replace'));
+btnNumAdd.addEventListener('click', () => applyNumSelection('add'));
+
+// Enter キーでも「この番号のみ選択」
+cellNumInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyNumSelection('replace');
+});
+
 function showSelectStep() {
   stepSelect.classList.remove('hidden');
   cellGrid.innerHTML = '';
@@ -429,10 +501,8 @@ function showSelectStep() {
     });
     cellGrid.appendChild(div);
 
-    const opt1 = new Option(`${i + 1}`, i);
-    const opt2 = new Option(`${i + 1}`, i);
-    mainSelect.appendChild(opt1);
-    tabSelect.appendChild(opt2);
+    mainSelect.appendChild(new Option(`${i + 1}`, i));
+    tabSelect.appendChild(new Option(`${i + 1}`, i));
   });
 
   updateSelectionUI();
@@ -461,6 +531,75 @@ document.querySelectorAll('input[name="bg-mode"]').forEach(radio => {
 
 tolInput.addEventListener('input', () => { tolVal.textContent = tolInput.value; });
 
+// ── 色入力連動ロジック ──────────────────────────────
+
+/** HEX → {r,g,b} または null */
+function hexToRgb(hex) {
+  const m = hex.trim().replace(/^#/, '').match(/^([0-9a-fA-F]{6})$/);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff };
+}
+
+/** {r,g,b} → "#rrggbb" */
+function rgbToHex({ r, g, b }) {
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+/** pickedColor を元にUIを全同期する */
+function syncColorUI(color) {
+  pickedColor = color;
+  const hex = rgbToHex(color);
+  ciHex.value = hex;
+  ciHex.classList.remove('error');
+  ciR.value = color.r;
+  ciG.value = color.g;
+  ciB.value = color.b;
+  colorNativePick.value = hex;
+  colorSwatch.style.background = hex;
+  colorLabel.textContent = `RGB(${color.r}, ${color.g}, ${color.b})`;
+}
+
+// HEX 入力
+ciHex.addEventListener('input', () => {
+  const v = ciHex.value.trim();
+  const color = hexToRgb(v.startsWith('#') ? v : '#' + v);
+  if (color) {
+    ciHex.classList.remove('error');
+    syncColorUI(color);
+  } else {
+    ciHex.classList.add('error');
+  }
+});
+
+// RGB 入力 (各チャンネル)
+function onRgbInput() {
+  const r = Math.max(0, Math.min(255, parseInt(ciR.value) || 0));
+  const g = Math.max(0, Math.min(255, parseInt(ciG.value) || 0));
+  const b = Math.max(0, Math.min(255, parseInt(ciB.value) || 0));
+  syncColorUI({ r, g, b });
+}
+ciR.addEventListener('input', onRgbInput);
+ciG.addEventListener('input', onRgbInput);
+ciB.addEventListener('input', onRgbInput);
+
+// ネイティブカラーピッカー
+colorNativePick.addEventListener('input', () => {
+  const color = hexToRgb(colorNativePick.value);
+  if (color) syncColorUI(color);
+});
+
+// 「この色を使用」ボタン
+btnCiApply.addEventListener('click', () => {
+  if (!pickedColor) {
+    colorLabel.textContent = '色を指定してください';
+    return;
+  }
+  // pickedColor は既にセット済みなので特に何もしない（視覚フィードバックのみ）
+  btnCiApply.textContent = '✓ 設定済み';
+  setTimeout(() => { btnCiApply.textContent = 'この色を使用'; }, 1200);
+});
+
 function setupPicker() {
   let pickerSource = null;
   if (appMode === 'sheet' && sourceImg) {
@@ -471,16 +610,12 @@ function setupPicker() {
   if (!pickerSource) return;
 
   const ctx = pickerCanvas.getContext('2d');
-  if (pickerSource instanceof HTMLImageElement) {
-    pickerCanvas.width = pickerSource.width;
-    pickerCanvas.height = pickerSource.height;
-    ctx.drawImage(pickerSource, 0, 0);
-  } else {
-    pickerCanvas.width = pickerSource.width;
-    pickerCanvas.height = pickerSource.height;
-    ctx.drawImage(pickerSource, 0, 0);
-  }
+  pickerCanvas.width = pickerSource.width;
+  pickerCanvas.height = pickerSource.height;
+  ctx.drawImage(pickerSource, 0, 0);
   pickerCanvas.style.cursor = 'crosshair';
+
+  // スポイト
   pickerCanvas.onclick = e => {
     const rect = pickerCanvas.getBoundingClientRect();
     const sx = pickerCanvas.width / rect.width;
@@ -488,13 +623,15 @@ function setupPicker() {
     const x = Math.floor((e.clientX - rect.left) * sx);
     const y = Math.floor((e.clientY - rect.top) * sy);
     const px = ctx.getImageData(x, y, 1, 1).data;
-    pickedColor = { r: px[0], g: px[1], b: px[2] };
-    colorSwatch.style.background = `rgb(${px[0]},${px[1]},${px[2]})`;
-    colorLabel.textContent = `RGB(${px[0]}, ${px[1]}, ${px[2]})`;
+    syncColorUI({ r: px[0], g: px[1], b: px[2] });
   };
 }
 
 btnRemoveBg.addEventListener('click', async () => {
+  if (!pickedColor) {
+    alert('背景色を指定してください（スポイトまたは色入力）');
+    return;
+  }
   btnRemoveBg.disabled = true;
   bgProgress.classList.remove('hidden');
   bgBar.value = 0;
@@ -503,7 +640,7 @@ btnRemoveBg.addEventListener('click', async () => {
   const selected = cells.filter(c => c.selected);
   for (let i = 0; i < selected.length; i++) {
     const cell = selected[i];
-    if (bgMode === 'color' && pickedColor) {
+    if (bgMode === 'color') {
       removeColorBg(cell, pickedColor, parseInt(tolInput.value));
     }
     bgBar.value = Math.round(((i + 1) / selected.length) * 100);
@@ -520,36 +657,28 @@ function removeColorBg(cell, color, tolerance) {
   const ctx = cell.canvas.getContext('2d');
   const imgData = ctx.getImageData(0, 0, cell.canvas.width, cell.canvas.height);
   const d = imgData.data;
-  // Pass 0: protect dark outline pixels AND bright non-bg pixels (text body)
-  // - Dark pixels (brightness < 80)  → black outlines, pupils, etc.
-  // - Bright pixels far from bg color (brightness > 200 AND colorDist > tolerance*2) → white/bright text body
-  // Mid-range pixels that are close to bg color (e.g. green fringe on text) are NOT protected
-  // so that Pass 4 edge erosion can cleanly remove them.
+
   const protectedPixels = new Set();
   for (let i = 0; i < d.length; i += 4) {
-    if (d[i+3] < 10) continue; // skip fully transparent
+    if (d[i+3] < 10) continue;
     const brightness = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
-    if (brightness < 80) {
-      // Dark pixel: black outline / pupil / nose
+    const distBg = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
+    if (brightness < 80 && distBg > tolerance * 1.5) {
+      // 暗いピクセルでも背景色に近ければ保護しない（暗色背景対応）
       protectedPixels.add(i);
-    } else if (brightness > 200) {
-      // Bright pixel: only protect if color is far from bg (not a bright-green fringe)
-      const distBg = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
-      if (distBg > tolerance * 2) {
-        protectedPixels.add(i);
-      }
+    } else if (brightness > 200 && distBg > tolerance * 2) {
+      // 明るいピクセルで背景色から遠いもの（白いテキスト等）を保護
+      protectedPixels.add(i);
     }
   }
 
   const unifyRange = tolerance * 1.5;
-  // Pass 1: unify near-bg colors
   for (let i = 0; i < d.length; i += 4) {
     if (protectedPixels.has(i)) continue;
     const dist = Math.sqrt((d[i] - color.r) ** 2 + (d[i+1] - color.g) ** 2 + (d[i+2] - color.b) ** 2);
     if (dist < unifyRange) { d[i] = color.r; d[i+1] = color.g; d[i+2] = color.b; }
   }
-  // Pass 2: remove unified bg (wider fade band)
-  // outer = tolerance * 1.5 so the fade band stays proportional to tolerance
+
   const outer = Math.round(tolerance * 1.5);
   for (let i = 0; i < d.length; i += 4) {
     if (protectedPixels.has(i)) continue;
@@ -557,7 +686,7 @@ function removeColorBg(cell, color, tolerance) {
     if (dist <= tolerance) { d[i+3] = 0; }
     else if (dist < outer) { d[i+3] = Math.round(((dist - tolerance) / (outer - tolerance)) * 255); }
   }
-  // Pass 3: defringe - remove background color spill from semi-transparent pixels only
+
   for (let i = 0; i < d.length; i += 4) {
     if (d[i+3] === 0 || d[i+3] >= 250) continue;
     if (protectedPixels.has(i)) continue;
@@ -573,9 +702,10 @@ function removeColorBg(cell, color, tolerance) {
       d[i+3] = Math.max(0, Math.round(d[i+3] * (1 - strength * 0.5)));
     }
   }
-    const w = cell.canvas.width;
+
+  const w = cell.canvas.width;
   const h = cell.canvas.height;
-    // Pass 3.5: flood fill - remove isolated background-color regions
+
   const floodThreshold = tolerance * 1.8;
   let changed = true;
   const maxFloodPasses = 10;
@@ -591,8 +721,7 @@ function removeColorBg(cell, color, tolerance) {
         if (protectedPixels.has(idx)) continue;
         const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
         if (dist > floodThreshold) continue;
-        let bgCount = 0;
-        let total = 0;
+        let bgCount = 0, total = 0;
         for (let dy = -3; dy <= 3; dy++) {
           for (let dx = -3; dx <= 3; dx++) {
             if (dx === 0 && dy === 0) continue;
@@ -605,14 +734,11 @@ function removeColorBg(cell, color, tolerance) {
             if (nDist < floodThreshold) bgCount++;
           }
         }
-        if (bgCount >= total * 0.5) {
-          d[idx + 3] = 0;
-          changed = true;
-        }
+        if (bgCount >= total * 0.5) { d[idx + 3] = 0; changed = true; }
       }
     }
   }
- // Pass 3.7: force-remove residual bg-colored opaque pixels
+
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = (y * w + x) * 4;
@@ -620,7 +746,6 @@ function removeColorBg(cell, color, tolerance) {
       if (protectedPixels.has(idx)) continue;
       const dist = Math.sqrt((d[idx] - color.r) ** 2 + (d[idx+1] - color.g) ** 2 + (d[idx+2] - color.b) ** 2);
       if (dist < floodThreshold) {
-        // Check if any neighbor is transparent (within 4px radius)
         let nearTransparent = false;
         for (let dy = -4; dy <= 4 && !nearTransparent; dy++) {
           for (let dx = -4; dx <= 4 && !nearTransparent; dx++) {
@@ -629,15 +754,11 @@ function removeColorBg(cell, color, tolerance) {
             if (d[(ny * w + nx) * 4 + 3] === 0) nearTransparent = true;
           }
         }
-        if (nearTransparent) {
-          d[idx + 3] = 0;
-        }
+        if (nearTransparent) d[idx + 3] = 0;
       }
     }
   }
-  // Pass 4: edge erode - remove only pixels very close to bg color at the transparent edge
-  // erodeThreshold kept tight (outer * 0.5) so only genuine bg fringe is removed,
-  // not actual character colors. erodePasses reduced to 2 to limit inward erosion.
+
   const erodeThreshold = outer * 0.5;
   const erodePasses = 2;
   for (let pass = 0; pass < erodePasses; pass++) {
@@ -671,7 +792,7 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
-  // Pass 5: color neutralize - remove background color cast from remaining semi-transparent pixels
+
   for (let i = 0; i < d.length; i += 4) {
     if (d[i+3] === 0 || d[i+3] >= 250) continue;
     const dr = d[i] - color.r, dg = d[i+1] - color.g, db = d[i+2] - color.b;
@@ -683,20 +804,18 @@ function removeColorBg(cell, color, tolerance) {
       d[i+2] = Math.min(255, Math.max(0, Math.round(d[i+2] + (d[i+2] - color.b) * (1 - a) * 1.2)));
     }
   }
-  // Pass 6: anti-alias - smooth jagged edges after erosion
+
   const aaData = new Uint8ClampedArray(d);
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
       const idx = (y * w + x) * 4;
       if (d[idx + 3] === 0) continue;
-      let transCount = 0;
-      let totalNeighbors = 0;
+      let transCount = 0, totalNeighbors = 0;
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           if (dx === 0 && dy === 0) continue;
           totalNeighbors++;
-          const nIdx = ((y + dy) * w + (x + dx)) * 4;
-          if (aaData[nIdx + 3] === 0) transCount++;
+          if (aaData[((y + dy) * w + (x + dx)) * 4 + 3] === 0) transCount++;
         }
       }
       if (transCount > 0 && transCount < totalNeighbors) {
@@ -705,24 +824,21 @@ function removeColorBg(cell, color, tolerance) {
       }
     }
   }
-  // Pass 7: desaturate residual bg-tinted pixels
-  // Opaque pixels that are still close to the bg color hue are pushed toward gray
-  // so leftover green/colored fringe becomes neutral and less visible.
-  // Protected pixels (black outlines, white text body) are skipped.
-  const desat7Threshold = outer * 1.2; // only affect pixels within this dist of bg color
+
+  const desat7Threshold = outer * 1.2;
   for (let i = 0; i < d.length; i += 4) {
-    if (d[i+3] < 128) continue;           // skip transparent/semi
-    if (protectedPixels.has(i)) continue;  // skip protected (outlines, text)
+    if (d[i+3] < 128) continue;
+    if (protectedPixels.has(i)) continue;
     const dr = d[i] - color.r, dg = d[i+1] - color.g, db = d[i+2] - color.b;
     const dist = Math.sqrt(dr*dr + dg*dg + db*db);
-    if (dist >= desat7Threshold) continue; // pixel is far enough from bg: leave it alone
-    // Desaturation strength: stronger the closer to bg color (0 at threshold, 1 at 0)
+    if (dist >= desat7Threshold) continue;
     const strength = Math.pow(1 - dist / desat7Threshold, 1.5);
     const gray = Math.round(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
     d[i]   = Math.round(d[i]   + (gray - d[i])   * strength);
     d[i+1] = Math.round(d[i+1] + (gray - d[i+1]) * strength);
     d[i+2] = Math.round(d[i+2] + (gray - d[i+2]) * strength);
   }
+
   ctx.putImageData(imgData, 0, 0);
 }
 
@@ -750,10 +866,10 @@ btnPackage.addEventListener('click', async () => {
 
   const zip = new JSZip();
   const mainIdx = parseInt(mainSelect.value);
-  const tabIdx = parseInt(tabSelect.value);
+  const tabIdx  = parseInt(tabSelect.value);
 
   zip.file('main.png', await resizeToBlob(cells[mainIdx].canvas, 240, 240));
-  zip.file('tab.png', await resizeToBlob(cells[tabIdx].canvas, 96, 74));
+  zip.file('tab.png',  await resizeToBlob(cells[tabIdx].canvas,  96, 74));
 
   for (let i = 0; i < selected.length; i++) {
     const blob = await fitLineSticker(selected[i].canvas);
