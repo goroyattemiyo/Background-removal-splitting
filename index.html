@@ -78,6 +78,19 @@
         <span id="count-warning" class="warning hidden">※ 8/16/24/32/40個にしてください</span>
       </p>
       <p class="hint">※ 番号はセル左上の数字です。選んだセルの画像がリサイズされます。</p>
+
+      <!-- 番号指定セレクター -->
+      <div id="cell-num-selector">
+        <label>番号指定：</label>
+        <input type="text" id="cell-num-input" placeholder="例: 1~4, 6, 8~10">
+        <button class="btn-num-apply" id="btn-num-select">この番号のみ選択</button>
+        <button class="btn-num-add" id="btn-num-add">追加選択</button>
+        <span id="cell-num-error"></span>
+        <span id="cell-num-hint" class="hint">
+          半角数字で指定。範囲は「~」または「-」、複数は「,」または「、」で区切る（例: 1~4, 6, 8~10）
+        </span>
+      </div>
+
       <div class="select-controls">
         <label>メイン画像（240×240）: <select id="main-select"></select></label>
         <label>タブ画像（96×74）: <select id="tab-select"></select></label>
@@ -90,17 +103,50 @@
       <h2>④ 背景除去（任意）</h2>
       <div class="controls">
         <label><input type="radio" name="bg-mode" value="none" checked> なし</label>
-        <label><input type="radio" name="bg-mode" value="color"> 色ベース（スポイト）</label>
+        <label><input type="radio" name="bg-mode" value="color"> 色ベース（スポイト＆色指定）</label>
       </div>
+
       <div id="color-picker-area" class="hidden">
-        <p>プレビュー画像をクリックして背景色を選択</p>
-        <canvas id="picker-canvas"></canvas>
-        <div id="picked-color-box">
-          <span id="color-swatch"></span>
-          <span id="color-label">未選択</span>
+        <!-- 色指定パネル -->
+        <div id="color-input-panel">
+          <!-- HEX -->
+          <div class="ci-group">
+            <label>HEX</label>
+            <input type="text" id="ci-hex" placeholder="#004900" maxlength="7">
+          </div>
+          <!-- RGB -->
+          <div class="ci-group">
+            <label>RGB</label>
+            <div class="ci-rgb-row">
+              <input type="number" id="ci-r" min="0" max="255" placeholder="R">
+              <span>,</span>
+              <input type="number" id="ci-g" min="0" max="255" placeholder="G">
+              <span>,</span>
+              <input type="number" id="ci-b" min="0" max="255" placeholder="B">
+            </div>
+          </div>
+          <!-- カラーピッカー -->
+          <div class="ci-group">
+            <label>カラーピッカー</label>
+            <input type="color" id="color-native-pick" value="#ffffff" title="カラーピッカーで選択">
+          </div>
+          <!-- 適用ボタン -->
+          <button class="ci-set-btn" id="btn-ci-apply">この色を使用</button>
+
+          <!-- スポイト結果表示 -->
+          <div id="picked-color-box">
+            <div id="color-swatch"></div>
+            <span id="color-label">スポイトで選択 または 上で色を指定</span>
+          </div>
         </div>
-        <label>許容値: <input type="range" id="tolerance" min="1" max="100" value="30"> <span id="tol-val">30</span></label>
+
+        <p class="hint">プレビュー画像をクリックしてスポイトで背景色を取得することもできます</p>
+        <canvas id="picker-canvas"></canvas>
+        <div style="margin-top:10px;">
+          <label>許容値: <input type="range" id="tolerance" min="1" max="100" value="30"> <span id="tol-val">30</span></label>
+        </div>
       </div>
+
       <button id="btn-remove-bg" class="hidden">背景除去を実行</button>
       <div id="bg-progress" class="hidden"><progress id="bg-bar" max="100" value="0"></progress> <span id="bg-status"></span></div>
     </section>
