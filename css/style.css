@@ -28,7 +28,7 @@ canvas { max-width: 100%; border-radius: 8px; margin-top: 12px; }
 .select-controls { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .warning { color: #ff3b30; font-weight: bold; }
 #picked-color-box { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
-#color-swatch { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #d2d2d7; }
+#color-swatch { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #d2d2d7; flex-shrink: 0; }
 #download-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; margin-bottom: 16px; }
 #download-preview img { width: 100%; border-radius: 6px; background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50%/12px 12px; }
 progress { width: 200px; }
@@ -56,3 +56,130 @@ footer { text-align: center; color: #6e6e73; font-size: .85rem; padding: 24px 0;
 #individual-preview .ind-thumb .ind-num { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,.6); color: #fff; font-size: .7rem; padding: 2px 6px; border-radius: 4px; }
 #individual-preview .ind-thumb .ind-remove { position: absolute; top: 4px; right: 4px; background: rgba(255,59,48,.85); color: #fff; border: none; font-size: .7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; line-height: 1; }
 #individual-preview .ind-thumb .ind-remove:hover { background: #ff3b30; }
+
+/* ─── Color input panel (Step 4) ─── */
+#color-input-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin: 10px 0 12px;
+  padding: 12px;
+  background: #f5f5f7;
+  border-radius: 10px;
+}
+#color-input-panel .ci-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#color-input-panel label {
+  font-size: .78rem;
+  color: #6e6e73;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+#color-input-panel input[type="text"] {
+  width: 90px;
+  padding: 6px 10px;
+  border: 1px solid #d2d2d7;
+  border-radius: 7px;
+  font-size: .9rem;
+  font-family: "SF Mono", "Menlo", monospace;
+  transition: border-color .15s;
+}
+#color-input-panel input[type="text"]:focus {
+  outline: none;
+  border-color: #0071e3;
+}
+#color-input-panel input[type="text"].error {
+  border-color: #ff3b30;
+  background: #fff5f5;
+}
+.ci-rgb-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ci-rgb-row input[type="number"] {
+  width: 56px !important;
+  padding: 6px 8px;
+  border: 1px solid #d2d2d7;
+  border-radius: 7px;
+  font-size: .9rem;
+  font-family: "SF Mono", "Menlo", monospace;
+  transition: border-color .15s;
+}
+.ci-rgb-row input[type="number"]:focus {
+  outline: none;
+  border-color: #0071e3;
+}
+.ci-rgb-row span { color: #6e6e73; font-size: .8rem; }
+#color-native-pick {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 2px;
+  background: transparent;
+}
+.ci-set-btn {
+  padding: 8px 18px;
+  font-size: .9rem;
+  align-self: flex-end;
+}
+
+/* ─── Cell number selector (Step 3) ─── */
+#cell-num-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f5f5f7;
+  border-radius: 10px;
+}
+#cell-num-selector label {
+  font-size: .85rem;
+  color: #6e6e73;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#cell-num-input {
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
+  padding: 7px 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  font-size: .9rem;
+  font-family: "SF Mono", "Menlo", monospace;
+  transition: border-color .15s;
+}
+#cell-num-input:focus { outline: none; border-color: #0071e3; }
+#cell-num-input.error { border-color: #ff3b30; background: #fff5f5; }
+#cell-num-selector .btn-num-apply {
+  padding: 8px 16px;
+  font-size: .85rem;
+  white-space: nowrap;
+}
+#cell-num-selector .btn-num-add {
+  padding: 8px 16px;
+  font-size: .85rem;
+  background: #34c759;
+  white-space: nowrap;
+}
+#cell-num-selector .btn-num-add:hover { background: #30b350; }
+#cell-num-hint {
+  width: 100%;
+  font-size: .78rem;
+  color: #6e6e73;
+}
+#cell-num-error {
+  width: 100%;
+  font-size: .8rem;
+  color: #ff3b30;
+  min-height: 1em;
+}
