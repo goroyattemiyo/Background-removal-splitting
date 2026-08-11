@@ -3,43 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LINE Stamp Maker</title>
+  <title>LINE Stamp Maker / Image Splitter</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>LINE Stamp Maker</h1>
-    <p>画像を分割 → 背景除去 → LINEスタンプ用ZIPを生成。すべてブラウザ内で完結。</p>
+    <h1>LINE Stamp Maker / Image Splitter</h1>
+    <p>LINEスタンプ用ZIP作成、またはシート画像の分割ダウンロード。すべてブラウザ内で完結。</p>
   </header>
 
   <main>
-    <!-- Step 1: Upload & Mode Select -->
-    <section id="step-upload" class="step">
-      <h2>① モード選択＆画像アップロード</h2>
-      <div class="mode-toggle">
-        <label class="mode-btn active" id="mode-sheet-label">
-          <input type="radio" name="app-mode" value="sheet" checked>
-          <span>シート分割モード</span>
-          <small>1枚のシート画像をグリッドで分割</small>
+    <!-- Step 1: Output purpose -->
+    <section id="step-purpose" class="step">
+      <h2>① 何をしたいですか？</h2>
+      <div class="purpose-toggle">
+        <label class="purpose-btn" id="purpose-line-label">
+          <input type="radio" name="output-mode" value="line">
+          <span class="purpose-icon">💬</span>
+          <strong>LINEスタンプ納品データを作る</strong>
+          <small>LINE Creators Market向けに画像を整えてZIPにまとめます</small>
         </label>
-        <label class="mode-btn" id="mode-individual-label">
-          <input type="radio" name="app-mode" value="individual">
-          <span>個別画像モード</span>
-          <small>複数の画像をそのままスタンプに</small>
+        <label class="purpose-btn" id="purpose-split-label">
+          <input type="radio" name="output-mode" value="split">
+          <span class="purpose-icon">✂️</span>
+          <strong>画像を分割してダウンロード</strong>
+          <small>シート画像を好きな行・列で分割し、必要な画像だけ保存します</small>
         </label>
       </div>
+    </section>
+
+    <!-- Step 2: Upload / input method -->
+    <section id="step-upload" class="step hidden">
+      <h2 id="upload-step-title">② 画像を用意</h2>
+
+      <div id="line-input-choice" class="hidden">
+        <p class="section-lead">画像の用意方法を選んでください。</p>
+        <div class="mode-toggle">
+          <label class="mode-btn" id="mode-sheet-label">
+            <input type="radio" name="app-mode" value="sheet">
+            <span>1枚のシート画像から作る</span>
+            <small>グリッド線で分割してスタンプ画像にします</small>
+          </label>
+          <label class="mode-btn" id="mode-individual-label">
+            <input type="radio" name="app-mode" value="individual">
+            <span>複数の個別画像から作る</span>
+            <small>8〜40枚の画像をそのままスタンプにします</small>
+          </label>
+        </div>
+      </div>
+
+      <div id="split-upload-intro" class="hidden mode-note">
+        <strong>シート画像を1枚選択してください。</strong>
+        <span>次の画面で行数・列数とグリッド位置を調整できます。</span>
+      </div>
+
       <!-- Sheet mode upload -->
-      <div id="upload-sheet">
+      <div id="upload-sheet" class="hidden">
         <div id="drop-zone">
-          <p>ここにシート画像をドラッグ＆ドロップ<br>またはクリックして選択</p>
+          <p><strong>シート画像をドラッグ＆ドロップ</strong><br>またはクリックして選択</p>
           <input type="file" id="file-input" accept="image/*" hidden>
         </div>
       </div>
+
       <!-- Individual mode upload -->
       <div id="upload-individual" class="hidden">
         <div id="drop-zone-multi">
-          <p>複数の画像をドラッグ＆ドロップ<br>またはクリックして選択（8〜40枚）</p>
+          <p><strong>複数の画像をドラッグ＆ドロップ</strong><br>またはクリックして選択（8〜40枚）</p>
           <input type="file" id="file-input-multi" accept="image/*" multiple hidden>
         </div>
         <div id="individual-preview"></div>
@@ -52,9 +82,9 @@
       <canvas id="preview-canvas" hidden></canvas>
     </section>
 
-    <!-- Step 2: Grid Split (sheet mode only) -->
+    <!-- Grid split (sheet mode only) -->
     <section id="step-split" class="step hidden">
-      <h2>② グリッド設定＆分割</h2>
+      <h2 id="split-step-title">③ グリッド設定＆分割</h2>
       <div class="controls">
         <label>行: <input type="number" id="rows" value="5" min="1" max="20"></label>
         <label>列: <input type="number" id="cols" value="8" min="1" max="20"></label>
@@ -71,15 +101,14 @@
       </div>
     </section>
 
-    <!-- Step 3: Select Stickers -->
+    <!-- Select images -->
     <section id="step-select" class="step hidden">
-      <h2>③ スタンプを選択</h2>
-      <p>使用するセルをクリックで選択（<span id="selected-count">0</span>個選択中）
+      <h2 id="select-step-title">④ 画像を選択</h2>
+      <p id="select-instruction">使用するセルをクリックで選択（<span id="selected-count">0</span>個選択中）
         <span id="count-warning" class="warning hidden">※ 8/16/24/32/40個にしてください</span>
       </p>
-      <p class="hint">※ 番号はセル左上の数字です。選んだセルの画像がリサイズされます。</p>
+      <p class="hint" id="select-hint">※ 番号はセル左上の数字です。</p>
 
-      <!-- 番号指定セレクター -->
       <div id="cell-num-selector">
         <label>番号指定：</label>
         <input type="text" id="cell-num-input" placeholder="例: 1~4, 6, 8~10">
@@ -91,30 +120,27 @@
         </span>
       </div>
 
-      <div class="select-controls">
+      <div class="select-controls" id="line-select-controls">
         <label>メイン画像（240×240）: <select id="main-select"></select></label>
         <label>タブ画像（96×74）: <select id="tab-select"></select></label>
       </div>
       <div id="cell-grid"></div>
     </section>
 
-    <!-- Step 4: Background Removal (optional) -->
+    <!-- Background Removal (LINE mode only) -->
     <section id="step-bg" class="step hidden">
-      <h2>④ 背景除去（任意）</h2>
+      <h2 id="bg-step-title">⑤ 背景除去（任意）</h2>
       <div class="controls">
         <label><input type="radio" name="bg-mode" value="none" checked> なし</label>
         <label><input type="radio" name="bg-mode" value="color"> 色ベース（スポイト＆色指定）</label>
       </div>
 
       <div id="color-picker-area" class="hidden">
-        <!-- 色指定パネル -->
         <div id="color-input-panel">
-          <!-- HEX -->
           <div class="ci-group">
             <label>HEX</label>
             <input type="text" id="ci-hex" placeholder="#004900" maxlength="7">
           </div>
-          <!-- RGB -->
           <div class="ci-group">
             <label>RGB</label>
             <div class="ci-rgb-row">
@@ -125,15 +151,12 @@
               <input type="number" id="ci-b" min="0" max="255" placeholder="B">
             </div>
           </div>
-          <!-- カラーピッカー -->
           <div class="ci-group">
             <label>カラーピッカー</label>
             <input type="color" id="color-native-pick" value="#ffffff" title="カラーピッカーで選択">
           </div>
-          <!-- 適用ボタン -->
           <button class="ci-set-btn" id="btn-ci-apply">この色を使用</button>
 
-          <!-- スポイト結果表示 -->
           <div id="picked-color-box">
             <div id="color-swatch"></div>
             <span id="color-label">スポイトで選択 または 上で色を指定</span>
@@ -151,12 +174,25 @@
       <div id="bg-progress" class="hidden"><progress id="bg-bar" max="100" value="0"></progress> <span id="bg-status"></span></div>
     </section>
 
-    <!-- Step 5: Package & Download -->
+    <!-- Download -->
     <section id="step-download" class="step hidden">
-      <h2>⑤ LINEパッケージ生成</h2>
-      <div id="download-preview"></div>
-      <button id="btn-package">ZIPを生成してダウンロード</button>
-      <div id="pkg-progress" class="hidden"><progress id="pkg-bar" max="100" value="0"></progress></div>
+      <h2 id="download-step-title">⑥ ダウンロード</h2>
+
+      <div id="line-download-panel">
+        <p class="mode-note compact">LINE用のメイン画像・タブ画像・スタンプ画像を規定サイズに整えてZIPにまとめます。</p>
+        <div id="download-preview"></div>
+        <button id="btn-package">LINE用ZIPを生成してダウンロード</button>
+        <div id="pkg-progress" class="hidden"><progress id="pkg-bar" max="100" value="0"></progress></div>
+      </div>
+
+      <div id="split-download-panel" class="hidden">
+        <p class="mode-note compact">選択した分割画像を、分割後のサイズのままPNGでZIPにまとめます。枚数制限はありません。</p>
+        <button id="btn-split-download">選択画像をZIPでダウンロード</button>
+        <div id="split-pkg-progress" class="hidden">
+          <progress id="split-pkg-bar" max="100" value="0"></progress>
+          <span id="split-pkg-status"></span>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -165,5 +201,6 @@
   </footer>
 
   <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/output-modes.js"></script>
 </body>
 </html>
