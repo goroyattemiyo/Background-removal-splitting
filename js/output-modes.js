@@ -21,6 +21,8 @@ const lineSelectControls = $('line-select-controls');
 const lineDownloadPanel = $('line-download-panel');
 const splitDownloadPanel = $('split-download-panel');
 const countWarning = $('count-warning');
+const upscaleOption = document.querySelector('.upscale-option');
+const upscaleCheck = $('upscale-check');
 
 const uploadStepTitle = $('upload-step-title');
 const splitStepTitle = $('split-step-title');
@@ -81,7 +83,7 @@ function updateStepLabels() {
     splitStepTitle.textContent = '③ グリッド設定＆分割';
     selectStepTitle.textContent = '④ ダウンロードする画像を選択';
     downloadStepTitle.textContent = '⑤ 分割画像をダウンロード';
-    selectHint.textContent = '※ 必要な画像だけ選択できます。枚数制限はありません。';
+    selectHint.textContent = '※ 必要な画像だけ選択できます。LINE用の8/16/24/32/40枚制限はありません。';
     return;
   }
 
@@ -107,6 +109,8 @@ function applyOutputModeView() {
     setHidden(lineInputChoice, true);
     setHidden(splitUploadIntro, false);
     setHidden(uploadIndividual, true);
+    setHidden(upscaleOption, true);
+    if (upscaleCheck) upscaleCheck.checked = false;
 
     // app.js は選択画面表示時に背景除去とLINEダウンロードも表示するため、
     // 任意分割モードではここで必要な画面だけに絞る。
@@ -121,6 +125,7 @@ function applyOutputModeView() {
   } else if (outputMode === 'line') {
     setHidden(splitUploadIntro, true);
     setHidden(lineInputChoice, false);
+    setHidden(upscaleOption, false);
     setHidden(lineSelectControls, false);
     setHidden(lineDownloadPanel, false);
     setHidden(splitDownloadPanel, true);
